@@ -76,18 +76,31 @@ Değişikliklerinizi GitHub'a yüklemek için:
 # Değişiklikleri stage'e ekle
 git add .
 
-# Commit yap
-git commit -m "Değişiklik açıklaması"
+# Commit yap (Türkçe karakterler İngilizce karşılıklarına çevrilmeli)
+git commit -m "Degisiklik aciklamasi"
 
 # GitHub'a push et
 git push origin main
 ```
 
+**⚠️ Önemli:** Commit mesajlarında Türkçe karakterler (İ, ü, ş, ö, ç, ğ, ı) bozulabilir. Bu yüzden İngilizce karşılıklarını kullanın:
+- İ → I, ı → i
+- Ü → U, ü → u
+- Ş → S, ş → s
+- Ö → O, ö → o
+- Ç → C, ç → c
+- Ğ → G, ğ → g
+
 ### Otomatik Güncelleme Script'i
 
 Daha kolay kullanım için hazır script'ler:
 
-**Windows (PowerShell):**
+**Windows (PowerShell) - Türkçe karakter güvenli:**
+```powershell
+.\scripts\push-to-github-safe.ps1 "Türkçe commit mesajı"
+```
+
+**Windows (PowerShell) - Normal:**
 ```powershell
 .\scripts\push-to-github.ps1 "Commit mesajı"
 ```
@@ -101,7 +114,7 @@ chmod +x scripts/push-to-github.sh
 Script otomatik olarak:
 - ✅ Değişiklikleri kontrol eder
 - ✅ Stage'e ekler
-- ✅ Commit yapar
+- ✅ Commit yapar (güvenli script Türkçe karakterleri otomatik çevirir)
 - ✅ GitHub'a push eder
 
 ### GitHub Actions CI/CD
