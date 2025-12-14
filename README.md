@@ -1,36 +1,135 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FXRKQN AI - Yapay Zeka Web Sitesi
 
-## Getting Started
+Retro, sade ve teknolojik arayüzlü bir genel yapay zeka web sitesi projesi.
 
-First, run the development server:
+## 🚀 Özellikler
+
+- Modern ve retro tasarım
+- Next.js 15 ile geliştirilmiş
+- Supabase entegrasyonu
+- Framer Motion animasyonları
+- Responsive tasarım
+
+## 📋 Gereksinimler
+
+- Node.js 20 veya üzeri
+- npm veya yarn
+
+## 🛠️ Kurulum
+
+Projeyi klonlayın:
+
+```bash
+git clone https://github.com/fxrkqnplus/fxrkqn-ai-project.git
+cd fxrkqn-ai-project/fxrkqn-ai
+```
+
+Bağımlılıkları yükleyin:
+
+```bash
+npm install
+```
+
+## 🏃 Geliştirme
+
+Geliştirme sunucusunu başlatın:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Tarayıcınızda [http://localhost:3000](http://localhost:3000) adresini açın.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📦 Build
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Production build oluşturmak için:
 
-## Learn More
+```bash
+npm run build
+npm start
+```
 
-To learn more about Next.js, take a look at the following resources:
+## 🔄 GitHub'a Güncelleme
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### İlk Kurulum (Repository Oluşturma)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Eğer GitHub'da repository henüz oluşturulmadıysa:
 
-## Deploy on Vercel
+1. GitHub'da yeni bir repository oluşturun: https://github.com/new
+2. Repository adı: `fxrkqn-ai-project`
+3. Public veya Private seçin
+4. **Initialize with README seçeneğini işaretlemeyin** (zaten README var)
+5. Repository oluşturun
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Sonra remote URL'i ayarlayın:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+git remote set-url origin https://github.com/fxrkqnplus/fxrkqn-ai-project.git
+git push -u origin main
+```
+
+### Manuel Güncelleme
+
+Değişikliklerinizi GitHub'a yüklemek için:
+
+```bash
+# Değişiklikleri stage'e ekle
+git add .
+
+# Commit yap
+git commit -m "Değişiklik açıklaması"
+
+# GitHub'a push et
+git push origin main
+```
+
+### Otomatik Güncelleme Script'i
+
+Daha kolay kullanım için hazır script'ler:
+
+**Windows (PowerShell):**
+```powershell
+.\scripts\push-to-github.ps1 "Commit mesajı"
+```
+
+**Linux/Mac:**
+```bash
+chmod +x scripts/push-to-github.sh
+./scripts/push-to-github.sh "Commit mesajı"
+```
+
+Script otomatik olarak:
+- ✅ Değişiklikleri kontrol eder
+- ✅ Stage'e ekler
+- ✅ Commit yapar
+- ✅ GitHub'a push eder
+
+### GitHub Actions CI/CD
+
+Her push işleminde GitHub Actions otomatik olarak:
+- ✅ Kodunuzu test eder
+- ✅ Linter çalıştırır
+- ✅ Projeyi build eder
+- ✅ Hataları kontrol eder
+
+Workflow durumunu GitHub repository'nizin "Actions" sekmesinden takip edebilirsiniz.
+
+## 📁 Proje Yapısı
+
+```
+fxrkqn-ai/
+├── app/              # Next.js app router sayfaları
+├── components/       # React bileşenleri
+├── lib/             # Yardımcı fonksiyonlar
+├── public/          # Statik dosyalar
+└── supabase/        # Supabase fonksiyonları
+```
+
+## 🔗 Bağlantılar
+
+- [GitHub Repository](https://github.com/fxrkqnplus/fxrkqn-ai-project)
+- [Next.js Dokümantasyonu](https://nextjs.org/docs)
+
+## 📝 Lisans
+
+Bu proje bireysel bir projedir.
