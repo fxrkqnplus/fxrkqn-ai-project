@@ -142,7 +142,8 @@ const Particles: React.FC<ParticlesProps> = React.memo(({
     const positions = new Float32Array(count * 3);
     const randoms = new Float32Array(count * 4);
     const colors = new Float32Array(count * 3);
-    const palette = particleColors && particleColors.length > 0 ? particleColors : defaultColors;
+    // particleColors'i dependency array'den çıkarıyoruz - sadece ilk render'da kullanılacak
+    const palette = (particleColors && particleColors.length > 0 ? particleColors : defaultColors);
 
     for (let i = 0; i < count; i++) {
       let x: number, y: number, z: number, len: number;
@@ -222,6 +223,7 @@ const Particles: React.FC<ParticlesProps> = React.memo(({
         container.removeChild(gl.canvas);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     particleCount,
     particleSpread,
@@ -233,7 +235,7 @@ const Particles: React.FC<ParticlesProps> = React.memo(({
     sizeRandomness,
     cameraDistance,
     disableRotation,
-    particleColors,
+    // particleColors'i dependency array'den çıkarıyoruz - animasyonun yeniden başlamasını önlemek için
   ]);
 
   return (
@@ -246,4 +248,36 @@ const Particles: React.FC<ParticlesProps> = React.memo(({
 
 Particles.displayName = 'Particles';
 
-export default Particles;
+// Custom comparison function - particleColors array'ini deep compare et
+export default React.memo(Particles, (prevProps, nextProps) => {
+  // Tüm prop'ları karşılaştır
+  if (
+    prevProps.particleCount !== nextProps.particleCount ||
+    prevProps.particleSpread !== nextProps.particleSpread ||
+    prevProps.speed !== nextProps.speed ||
+    prevProps.moveParticlesOnHover !== nextProps.moveParticlesOnHover ||
+    prevProps.particleHoverFactor !== nextProps.particleHoverFactor ||
+    prevProps.alphaParticles !== nextProps.alphaParticles ||
+    prevProps.particleBaseSize !== nextProps.particleBaseSize ||
+    prevProps.sizeRandomness !== nextProps.sizeRandomness ||
+    prevProps.cameraDistance !== nextProps.cameraDistance ||
+    prevProps.disableRotation !== nextProps.disableRotation ||
+    prevProps.className !== nextProps.className
+  ) {
+    return false; // Props değişti, re-render yap
+  }
+  
+  // particleColors array'ini karşılaştır
+  const prevColors = prevProps.particleColors || [];
+  const nextColors = nextProps.particleColors || [];
+  if (prevColors.length !== nextColors.length) {
+    return false;
+  }
+  for (let i = 0; i < prevColors.length; i++) {
+    if (prevColors[i] !== nextColors[i]) {
+      return false;
+    }
+  }
+  
+  return true; // Props aynı, re-render yapma
+});

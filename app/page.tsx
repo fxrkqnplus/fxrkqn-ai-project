@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '../lib/supabaseClient';
@@ -73,6 +73,9 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [showBg, setShowBg] = useState(false);
   const [isSignUpHovered, setIsSignUpHovered] = useState(false);
+
+  // ParticleColors'i memoize et - her render'da yeni array oluşmasını önle
+  const particleColors = useMemo(() => ['#ffffff', '#ffffff'], []);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -198,7 +201,7 @@ export default function Home() {
       <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
         <div className={`w-full h-full transition-opacity duration-1000 ease-in-out ${showBg ? 'opacity-100' : 'opacity-0'}`}>
           <Particles
-            particleColors={['#ffffff', '#ffffff']}
+            particleColors={particleColors}
             particleCount={200}
             particleSpread={10}
             speed={0.1}
