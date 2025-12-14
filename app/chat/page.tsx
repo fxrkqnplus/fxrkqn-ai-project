@@ -108,7 +108,7 @@ export default function ChatPage() {
             console.error('Mesajlar çekilemedi:', error);
         } else {
             // veritabanından gelen role string'leri 'user'|'model' biçiminde bekliyoruz
-            setMessages((data as any) || []);
+            setMessages((data as Message[]) || []);
         }
     };
 
@@ -181,7 +181,7 @@ export default function ChatPage() {
                 const genRes = await supabase.functions.invoke('generate-title', { body: { firstMessage: userInput } });
                 console.log('generate-title raw response ->', genRes);
 
-                let titleFromRes: any = null;
+                let titleFromRes: string | null = null;
                 if (genRes?.data?.title) titleFromRes = genRes.data.title;
                 else if (typeof genRes?.data === 'string') titleFromRes = genRes.data;
                 else if (genRes?.title) titleFromRes = genRes.title;
@@ -228,7 +228,7 @@ export default function ChatPage() {
                     setConversations(prev => prev.map(c => c.id === convId ? { ...c, title: updated.title } : c));
                 }
 
-            } catch (gtErr: any) {
+            } catch (gtErr: unknown) {
                 console.error('generate-title invocation failed:', gtErr);
                 const fallback = userInput.replace(/[\r\n]+/g, ' ').split(/[.?!]/)[0].split(/\s+/).slice(0, 6).join(' ').trim();
                 try {
@@ -242,9 +242,10 @@ export default function ChatPage() {
             }
         }
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("handleSubmit içinde Hata:", error);
-            setMessages(prev => [...prev, { role: 'model', content: `Üzgünüm, bir sorun oluştu: ${error.message}` }]);
+            const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen bir hata oluştu';
+            setMessages(prev => [...prev, { role: 'model', content: `Üzgünüm, bir sorun oluştu: ${errorMessage}` }]);
         } finally {
             setIsGenerating(false);
         }

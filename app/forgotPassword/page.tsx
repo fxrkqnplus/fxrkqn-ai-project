@@ -112,7 +112,7 @@ export default function PasswordResetPage() {
       );
       setEmail(''); // Başarılı olunca e-posta alanını temizle
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Şifre sıfırlama hatası:', err);
       if (!error) { // Zaten özel bir hata mesajı ayarlanmadıysa
         setError('Bir hata oluştu. Lütfen tekrar deneyin.');

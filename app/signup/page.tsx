@@ -177,7 +177,7 @@ export default function SignUpPage() {
     // setIsLoading(true) ve setError(null) zaten handleNextStep içinde yapıldı.
     try {
       console.log('🚀 Kayıt işlemi başlatılıyor...');
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      const { error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
@@ -193,11 +193,12 @@ export default function SignUpPage() {
       console.log('✅ Kayıt başarılı, doğrulama bekleniyor.');
       router.push(`/`); // Kayıt sonrası ana sayfadaki doğrulama UI'ına yönlendir.
 
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error('Kayıt hatası:', err);
-        if (err.message.includes('User already registered')) {
+        const errorMessage = err instanceof Error ? err.message : '';
+        if (errorMessage.includes('User already registered')) {
             setError('Bu e-posta adresi zaten kayıtlı. Giriş yapmayı deneyin.');
-        } else if (err.message.includes('rate limit')) {
+        } else if (errorMessage.includes('rate limit')) {
             setError('Çok fazla deneme yapıldı. Lütfen biraz bekleyin.');
         } else {
             setError('Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.');

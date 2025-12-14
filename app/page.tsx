@@ -23,8 +23,9 @@ const VerificationUI = ({ email, onBack }: { email: string; onBack: () => void }
       const { error } = await supabase.auth.resend({ type: 'signup', email });
       if (error) throw error;
       setMessage('✅ Doğrulama e-postası başarıyla yeniden gönderildi.');
-    } catch (err: any) {
-      setMessage('❌ Hata: ' + err.message);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Beklenmedik bir hata oluştu';
+      setMessage('❌ Hata: ' + errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -177,9 +178,10 @@ export default function Home() {
         setError('Giriş başarısız. Lütfen tekrar deneyin.');
       }
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Beklenmedik giriş hatası:', err);
-      setError(err.message || 'Beklenmedik bir hata oluştu.');
+      const errorMessage = err instanceof Error ? err.message : 'Beklenmedik bir hata oluştu';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

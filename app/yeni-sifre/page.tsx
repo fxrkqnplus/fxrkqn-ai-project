@@ -156,12 +156,13 @@ export default function NewPasswordPage() {
         router.push('/?message=password-updated');
       }, 3000);
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Şifre güncelleme hatası:', err);
+      const errorMessage = err instanceof Error ? err.message : '';
       
-      if (err.message.includes('weak_password')) {
+      if (errorMessage.includes('weak_password')) {
         setError('Şifre çok zayıf. Daha güçlü bir şifre seçin.');
-      } else if (err.message.includes('same_password')) {
+      } else if (errorMessage.includes('same_password')) {
         setError('Yeni şifre eski şifrenizle aynı olamaz.');
       } else {
         setError('Şifre güncellenirken bir hata oluştu. Lütfen tekrar deneyin.');

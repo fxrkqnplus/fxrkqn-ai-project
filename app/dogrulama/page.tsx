@@ -129,9 +129,10 @@ function VerificationPageContent() {
             const { error } = await supabase.auth.resend({ type: 'signup', email });
             if (error) throw error;
             setMessage('✅ Doğrulama e-postası başarıyla yeniden gönderildi. Lütfen e-posta kutunuzu kontrol edin.');
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Resend error:', error);
-            setMessage('❌ Hata: ' + (error.message || 'Beklenmedik bir hata oluştu'));
+            const errorMessage = error instanceof Error ? error.message : 'Beklenmedik bir hata oluştu';
+            setMessage('❌ Hata: ' + errorMessage);
         } finally {
             setIsLoading(false);
         }
