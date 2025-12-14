@@ -195,7 +195,7 @@ export default function Home() {
   return (
     <>
       {/* Arka Plan Animasyonu */}
-      <div className="absolute inset-0 -z-10 overflow-hidden">
+      <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
         <div className={`w-full h-full transition-opacity duration-1000 ease-in-out ${showBg ? 'opacity-100' : 'opacity-0'}`}>
           <Particles
             particleColors={['#ffffff', '#ffffff']}

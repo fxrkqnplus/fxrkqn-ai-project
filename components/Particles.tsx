@@ -89,7 +89,7 @@ const fragment = /* glsl */ `
   }
 `;
 
-const Particles: React.FC<ParticlesProps> = ({
+const Particles: React.FC<ParticlesProps> = React.memo(({
   particleCount = 200,
   particleSpread = 10,
   speed = 0.1,
@@ -242,6 +242,8 @@ const Particles: React.FC<ParticlesProps> = ({
       className={`relative w-full h-full ${className}`}
     />
   );
-};
+});
+
+Particles.displayName = 'Particles';
 
 export default Particles;
