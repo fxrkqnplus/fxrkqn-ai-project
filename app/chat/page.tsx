@@ -184,7 +184,6 @@ export default function ChatPage() {
                 let titleFromRes: string | null = null;
                 if (genRes?.data?.title) titleFromRes = genRes.data.title;
                 else if (typeof genRes?.data === 'string') titleFromRes = genRes.data;
-                else if (genRes?.title) titleFromRes = genRes.title;
                 else if (genRes?.data?.body) titleFromRes = genRes.data.body;
 
                 let finalTitle: string;
