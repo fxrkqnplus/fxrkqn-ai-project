@@ -141,8 +141,10 @@ export default function SignUpPage() {
       }
 
       if (currentStep === 2) {
-        if (formData.password.length < 6) {
-          setError('Şifre en az 6 karakter olmalıdır.');
+        const passwordPolicy = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+
+        if (!passwordPolicy.test(formData.password)) {
+          setError('Şifre en az 8 karakter olmalı ve küçük harf, büyük harf ile rakam içermelidir.');
           return;
         }
         if (formData.password !== formData.confirmPassword) {
@@ -255,6 +257,7 @@ export default function SignUpPage() {
                       <label htmlFor="password" className="block text-sm font-medium text-zinc-300 font-mono text-left">şifre</label>
                       <input id="password" name="password" type="password" value={formData.password} onChange={handleChange} placeholder="••••••••" disabled={isLoading} className="w-full h-10 px-4 bg-black/[.05] dark:bg-white/[.06] border border-solid border-black/[.08] dark:border-white/[.145] rounded-lg focus:outline-none focus:ring-2 focus:ring-black/30 dark:focus:ring-white/30 font-mono disabled:opacity-50"/>
                       <input name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} placeholder="şifreyi doğrula" disabled={isLoading} className="w-full h-10 px-4 bg-black/[.05] dark:bg-white/[.06] border border-solid border-black/[.08] dark:border-white/[.145] rounded-lg focus:outline-none focus:ring-2 focus:ring-black/30 dark:focus:ring-white/30 font-mono disabled:opacity-50"/>
+                      <p className="text-xs text-zinc-500 font-mono text-left">Şifreniz en az 8 karakter olmalı; küçük harf, büyük harf ve rakam içermelidir.</p>
                     </div>
                   )}
                   {currentStep === 3 && (
