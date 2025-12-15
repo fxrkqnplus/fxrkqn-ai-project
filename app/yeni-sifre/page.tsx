@@ -113,9 +113,12 @@ export default function NewPasswordPage() {
   }
 
   const validatePassword = (pwd: string) => {
-    if (pwd.length < 6) {
-      return 'Şifre en az 6 karakter olmalıdır.';
+    const passwordPolicy = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+
+    if (!passwordPolicy.test(pwd)) {
+      return 'Şifre en az 8 karakter olmalı ve küçük harf, büyük harf ile rakam içermelidir.';
     }
+
     return null;
   };
 
@@ -354,7 +357,7 @@ export default function NewPasswordPage() {
                   placeholder="yeni şifrenizi giriniz."
                   className="w-full h-10 px-4 bg-black/[.05] dark:bg-white/[.06] border border-solid border-black/[.08] dark:border-white/[.145] rounded-lg focus:outline-none focus:ring-2 focus:ring-black/30 dark:focus:ring-white/30 font-semibold"
                   disabled={isLoading}
-                  minLength={6}
+                  minLength={8}
                 />
               </div>
 
@@ -374,7 +377,7 @@ export default function NewPasswordPage() {
                   placeholder="şifrenizi tekrar giriniz."
                   className="w-full h-10 px-4 bg-black/[.05] dark:bg-white/[.06] border border-solid border-black/[.08] dark:border-white/[.145] rounded-lg focus:outline-none focus:ring-2 focus:ring-black/30 dark:focus:ring-white/30 font-semibold"
                   disabled={isLoading}
-                  minLength={6}
+                  minLength={8}
                 />
               </div>
 
@@ -388,9 +391,9 @@ export default function NewPasswordPage() {
             </form>
 
             {/* Şifre gereksinimleri */}
-            <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-              <p className="text-blue-400 text-xs font-mono">
-                💡 Şifreniz en az 6 karakter olmalıdır. Güvenliğiniz için güçlü bir şifre seçin.
+            <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg text-left">
+              <p className="text-blue-400 text-xs font-mono leading-relaxed">
+                💡 Şifreniz en az 8 karakter olmalı; en az bir küçük harf, bir büyük harf ve bir rakam içermelidir.
               </p>
             </div>
           </div>

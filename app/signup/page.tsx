@@ -141,8 +141,10 @@ export default function SignUpPage() {
       }
 
       if (currentStep === 2) {
-        if (formData.password.length < 6) {
-          setError('Şifre en az 6 karakter olmalıdır.');
+        const passwordPolicy = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+
+        if (!passwordPolicy.test(formData.password)) {
+          setError('Şifre en az 8 karakter olmalı ve küçük harf, büyük harf ile rakam içermelidir.');
           return;
         }
         if (formData.password !== formData.confirmPassword) {
@@ -191,6 +193,8 @@ export default function SignUpPage() {
       if (signUpError) throw signUpError;
 
       console.log('✅ Kayıt başarılı, doğrulama bekleniyor.');
+      sessionStorage.setItem('signupSuccessEmail', formData.email);
+      sessionStorage.setItem('verificationEmail', formData.email);
       router.push(`/`); // Kayıt sonrası ana sayfadaki doğrulama UI'ına yönlendir.
 
     } catch (err: unknown) {
@@ -222,8 +226,14 @@ export default function SignUpPage() {
       </AnimatePresence>
       <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
         <main className="row-start-2 flex flex-col gap-8 items-center text-center sm:items-start sm:text-left">
-          <div className="relative w-full max-w-md bg-black/10 dark:bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-black/[.1] dark:border-white/[.1] shadow-xl">
-            <button onClick={handlePrevStep} disabled={isLoading} className="absolute top-6 left-6 text-zinc-400 hover:text-foreground transition-colors disabled:opacity-50" aria-label="Önceki adıma dön">
+            <div className="relative w-full max-w-md bg-black/10 dark:bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-black/[.1] dark:border-white/[.1] shadow-xl">
+            <button
+              type="button"
+              onClick={handlePrevStep}
+              disabled={isLoading}
+              className="absolute top-6 left-6 text-zinc-400 hover:text-foreground transition-colors disabled:opacity-50"
+              aria-label="Önceki adıma dön"
+            >
               <ArrowLeftIcon className="h-6 w-6" />
             </button>
             <div className="text-center mb-8 mt-4">
@@ -236,10 +246,17 @@ export default function SignUpPage() {
                 <span className="text-base font-medium text-zinc-400 pr-15 font-mono">adım {currentStep} / {steps.length}</span>
                 <span className="text-sm font-medium text-zinc-400 font-mono">{steps[currentStep - 1].title}</span>
               </div>
-              <div className="w-full bg-zinc-700 rounded-full h-2.5">
-                <motion.div className="bg-blue-600 h-2.5 rounded-full" animate={{ width: `${(currentStep / steps.length) * 100}%` }} transition={{ duration: 0.5, ease: 'easeInOut' }}/>
-              </div>
+            <div className="w-full bg-zinc-700 rounded-full h-2.5">
+              <motion.div className="bg-blue-600 h-2.5 rounded-full" animate={{ width: `${(currentStep / steps.length) * 100}%` }} transition={{ duration: 0.5, ease: 'easeInOut' }}/>
             </div>
+          </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleNextStep();
+            }}
+            className="space-y-6"
+          >
             <div className="relative h-48 overflow-hidden">
               <AnimatePresence initial={false} custom={direction}>
                 <motion.div key={currentStep} custom={direction} variants={variants} initial="enter" animate="center" exit="exit" transition={{ x: { type: 'spring', stiffness: 300, damping: 30 }, opacity: { duration: 0.2 },}} className="absolute w-full">
@@ -255,6 +272,7 @@ export default function SignUpPage() {
                       <label htmlFor="password" className="block text-sm font-medium text-zinc-300 font-mono text-left">şifre</label>
                       <input id="password" name="password" type="password" value={formData.password} onChange={handleChange} placeholder="••••••••" disabled={isLoading} className="w-full h-10 px-4 bg-black/[.05] dark:bg-white/[.06] border border-solid border-black/[.08] dark:border-white/[.145] rounded-lg focus:outline-none focus:ring-2 focus:ring-black/30 dark:focus:ring-white/30 font-mono disabled:opacity-50"/>
                       <input name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} placeholder="şifreyi doğrula" disabled={isLoading} className="w-full h-10 px-4 bg-black/[.05] dark:bg-white/[.06] border border-solid border-black/[.08] dark:border-white/[.145] rounded-lg focus:outline-none focus:ring-2 focus:ring-black/30 dark:focus:ring-white/30 font-mono disabled:opacity-50"/>
+                      <p className="text-xs text-zinc-500 font-mono text-left">Şifreniz en az 8 karakter olmalı; küçük harf, büyük harf ve rakam içermelidir.</p>
                     </div>
                   )}
                   {currentStep === 3 && (
@@ -262,7 +280,12 @@ export default function SignUpPage() {
                       <label className="block text-sm font-medium text-zinc-300 font-mono text-left mb-2">Cinsiyet</label>
                       <div className="flex gap-4">
                         {['Erkek', 'Kadın', 'Diğer'].map(gender => (
-                            <button key={gender} onClick={() => setFormData(prev => ({...prev, gender}))} className={`w-full h-12 rounded-lg border transition-colors ${formData.gender === gender ? 'bg-blue-600 border-blue-500' : 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700'}`}>
+                            <button
+                              key={gender}
+                              type="button"
+                              onClick={() => setFormData(prev => ({...prev, gender}))}
+                              className={`w-full h-12 rounded-lg border transition-colors ${formData.gender === gender ? 'bg-blue-600 border-blue-500' : 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700'}`}
+                            >
                                 {gender}
                             </button>
                         ))}
@@ -278,11 +301,12 @@ export default function SignUpPage() {
                 </motion.div>
               </AnimatePresence>
             </div>
-            <div className="mt-8">
-              <button onClick={handleNextStep} className="w-full h-12 rounded-full bg-foreground text-background font-semibold hover:bg-zinc-300 transition-colors disabled:opacity-50" disabled={isLoading}>
+            <div className="mt-2">
+              <button type="submit" className="w-full h-12 rounded-full bg-foreground text-background font-semibold hover:bg-zinc-300 transition-colors disabled:opacity-50" disabled={isLoading}>
                 {isLoading ? 'kontrol ediliyor...' : (currentStep === steps.length ? 'Kaydı Tamamla' : 'İleri')}
               </button>
             </div>
+          </form>
           </div>
         </main>
       </div>
