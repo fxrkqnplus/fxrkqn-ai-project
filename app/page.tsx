@@ -33,7 +33,12 @@ const VerificationUI = ({ email, onBack }: { email: string; onBack: () => void }
 
   return (
     <div className="relative flex flex-col gap-6 text-center max-w-md p-8 animate-fade-in">
-      <button onClick={onBack} className="absolute top-0 left-0 text-zinc-400 hover:text-foreground transition-colors" aria-label="Giriş formuna geri dön">
+      <button
+        type="button"
+        onClick={onBack}
+        className="absolute top-0 left-0 text-zinc-400 hover:text-foreground transition-colors"
+        aria-label="Giriş formuna geri dön"
+      >
         <ArrowLeftIcon className="h-6 w-6" />
       </button>
       <h1 className="text-3xl font-bold text-foreground font-mono">
@@ -74,6 +79,8 @@ export default function Home() {
   const [showBg, setShowBg] = useState(false);
   const [isSignUpHovered, setIsSignUpHovered] = useState(false);
 
+  const isValidEmail = (value: string) => /.+@.+\..+/.test(value.trim());
+
   // ParticleColors'i memoize et - her render'da yeni array oluşmasını önle
   const particleColors = useMemo(() => ['#ffffff', '#ffffff'], []);
 
@@ -97,6 +104,7 @@ export default function Home() {
           // E-posta doğrulanmamış ve verification ekranındayız
           setSuccessMessage('E-posta doğrulama başarılı. Lütfen giriş yapın.');
           supabase.auth.signOut();
+          sessionStorage.removeItem('verificationEmail');
           setUiState('form');
         }
       }
@@ -111,6 +119,13 @@ export default function Home() {
 
     return () => authListener.subscription.unsubscribe();
   }, [router, uiState]);
+
+  useEffect(() => {
+    const storedEmail = sessionStorage.getItem('verificationEmail');
+    if (storedEmail) {
+      setEmail(storedEmail);
+    }
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowBg(true), 3000);
@@ -130,6 +145,18 @@ export default function Home() {
   const handleSignIn = async () => {
     setError(null);
     setIsLoading(true);
+
+    if (!isValidEmail(email)) {
+      setIsLoading(false);
+      setError('Lütfen geçerli bir e-posta adresi girin.');
+      return;
+    }
+
+    if (!password.trim()) {
+      setIsLoading(false);
+      setError('Şifre alanı boş bırakılamaz.');
+      return;
+    }
     
     try {
       console.log('Giriş denemesi başladı:', email);
@@ -193,6 +220,11 @@ export default function Home() {
   const handleSignUp = async () => {
     // Kayıt sayfasına yönlendirme
     router.push('/signup');
+  };
+
+  const handleBackToForm = () => {
+    sessionStorage.removeItem('verificationEmail');
+    setUiState('form');
   };
 
   return (
@@ -301,7 +333,7 @@ export default function Home() {
               </div>
             </>
           ) : (
-            <VerificationUI email={email} onBack={() => setUiState('form')} />
+            <VerificationUI email={email} onBack={handleBackToForm} />
           )}
         </main>
         <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
