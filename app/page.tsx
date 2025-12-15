@@ -125,6 +125,12 @@ export default function Home() {
     if (storedEmail) {
       setEmail(storedEmail);
     }
+
+    const signupSuccessEmail = sessionStorage.getItem('signupSuccessEmail');
+    if (signupSuccessEmail) {
+      setSuccessMessage(`Doğrulama bağlantısı "${signupSuccessEmail}" adresine gönderildi. E-posta kutunuzu kontrol edin.`);
+      sessionStorage.removeItem('signupSuccessEmail');
+    }
   }, []);
 
   useEffect(() => {
@@ -142,7 +148,8 @@ export default function Home() {
     }
   }, [error, successMessage]);
 
-  const handleSignIn = async () => {
+  const handleSignIn = async (event?: React.FormEvent) => {
+    event?.preventDefault();
     setError(null);
     setIsLoading(true);
 
@@ -260,34 +267,36 @@ export default function Home() {
                 <DecryptedText text="giriş yapın." animateOn="view" sequential revealDirection="start" speed={60} />
               </div>
               <div className="w-full max-w-sm space-y-4">
-                <div className="space-y-3">
-                  <input
-                    type="email"
-                    placeholder="e-posta adresi"
-                    className="w-full h-10 px-4 bg-black/[.05] dark:bg-white/[.06] border border-solid border-black/[.08] dark:border-white/[.145] rounded-lg focus:outline-none focus:ring-2 focus:ring-black/30 dark:focus:ring-white/30"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                  />
-                  <input
-                    type="password"
-                    placeholder="şifre"
-                    className="w-full h-10 px-4 bg-black/[.05] dark:bg-white/[.06] border border-solid border-black/[.08] dark:border-white/[.145] rounded-lg focus:outline-none focus:ring-2 focus:ring-black/30 dark:focus:ring-white/30"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-4 mb-8">
-                  <button
-                    onClick={handleSignIn}
-                    disabled={isLoading}
-                    className="w-full sm:w-auto rounded-full bg-foreground text-background transition-colors flex items-center justify-center gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 px-5 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isLoading ? '...' : 'giriş yap'}
-                  </button>
-                  <Link href="/forgotPassword" className="text-sm text-zinc-400 hover:text-foreground transition-colors whitespace-nowrap">
-                    şifrenizi mi unuttunuz?
-                  </Link>
-                </div>
+                <form onSubmit={handleSignIn} className="space-y-3">
+                  <div className="space-y-3">
+                    <input
+                      type="email"
+                      placeholder="e-posta adresi"
+                      className="w-full h-10 px-4 bg-black/[.05] dark:bg-white/[.06] border border-solid border-black/[.08] dark:border-white/[.145] rounded-lg focus:outline-none focus:ring-2 focus:ring-black/30 dark:focus:ring-white/30"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                    />
+                    <input
+                      type="password"
+                      placeholder="şifre"
+                      className="w-full h-10 px-4 bg-black/[.05] dark:bg-white/[.06] border border-solid border-black/[.08] dark:border-white/[.145] rounded-lg focus:outline-none focus:ring-2 focus:ring-black/30 dark:focus:ring-white/30"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-4 mb-8">
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full sm:w-auto rounded-full bg-foreground text-background transition-colors flex items-center justify-center gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 px-5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoading ? '...' : 'giriş yap'}
+                    </button>
+                    <Link href="/forgotPassword" className="text-sm text-zinc-400 hover:text-foreground transition-colors whitespace-nowrap">
+                      şifrenizi mi unuttunuz?
+                    </Link>
+                  </div>
+                </form>
                 <div className="pt-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
                   hesabınız yok mu?{' '}
                   <div
