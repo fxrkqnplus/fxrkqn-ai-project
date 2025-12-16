@@ -255,10 +255,12 @@ export default function ChatPage() {
     }
 
       return (
-    <div className="flex h-screen bg-background text-foreground font-[family-name:var(--font-geist-sans)]">
-      <aside className={`flex flex-col bg-zinc-900/50 border-r border-zinc-800 transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-64 p-4' : 'w-0 p-0 border-none'}`}>
-        <div className={`flex flex-col h-full overflow-hidden transition-opacity duration-200 ${!isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-          <button onClick={handleNewChat} className="flex-shrink-0 w-full text-left p-2 rounded hover:bg-zinc-700 transition-colors whitespace-nowrap">
+    <div className="relative flex h-screen bg-background text-foreground font-[family-name:var(--font-geist-sans)]">
+      <aside
+        className={`fixed inset-y-0 left-0 z-30 flex flex-col bg-zinc-900/70 backdrop-blur-xl border-r border-zinc-800 transition-transform duration-300 ease-in-out w-64 max-w-[78vw] ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      >
+        <div className="flex flex-col h-full overflow-hidden">
+          <button onClick={handleNewChat} className="flex-shrink-0 w-full text-left p-2 rounded hover:bg-zinc-800 transition-colors whitespace-nowrap text-sm sm:text-base">
             + Yeni Sohbet
           </button>
 
@@ -271,14 +273,14 @@ export default function ChatPage() {
               <button
                 key={conv.id}
                 onClick={() => handleConversationSelect(conv.id)}
-                className={`w-full text-left p-2 rounded text-sm truncate transition-colors ${currentConversationId === conv.id ? 'bg-zinc-700' : 'hover:bg-zinc-800'}`}
+                className={`w-full text-left p-2 rounded text-sm truncate transition-colors ${currentConversationId === conv.id ? 'bg-zinc-700/80' : 'hover:bg-zinc-800/80'}`}
               >
                 {conv.title ?? 'Başlıksız Sohbet'}
               </button>
             ))}
           </div>
 
-          <div className="flex-shrink-0 border-t border-zinc-700 pt-4 px-2 text-sm">
+          <div className="flex-shrink-0 border-t border-zinc-800 pt-4 px-2 text-sm">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-white text-xs">
                 {user?.email?.charAt(0).toUpperCase() ?? 'U'}
@@ -291,12 +293,12 @@ export default function ChatPage() {
           </div>
         </div>
       </aside>
-          <div className="relative flex-1">
-              <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="absolute top-1/2 -translate-y-1/2 -left-3 z-10 p-1 bg-zinc-800 hover:bg-zinc-700 rounded-full border border-zinc-700 text-white transition-all">
+          <div className="relative flex-1 px-3 sm:px-6">
+              <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="absolute top-4 left-2 sm:left-0 z-20 p-2 bg-zinc-800/90 hover:bg-zinc-700 rounded-full border border-zinc-700 text-white transition-all shadow-lg">
                   <SidebarToggleIcon isOpen={isSidebarOpen} />
               </button>
               <main className="flex flex-col h-screen">
-                  <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                  <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
                       {messages.length === 0 && (
                           <div className="flex h-full items-center justify-center text-zinc-500">
                               <p>Sohbeti başlatmak için bir mesaj gönderin.</p>
@@ -317,19 +319,19 @@ export default function ChatPage() {
                       ))}
                       <div ref={messagesEndRef} />
                   </div>
-                  <div className="border-t border-zinc-800 p-4 bg-background">
-                      <form onSubmit={handleSubmit} className="flex items-center gap-4 max-w-4xl mx-auto">
+                  <div className="border-t border-zinc-800 p-4 bg-background/80 backdrop-blur">
+                      <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 max-w-4xl mx-auto w-full">
                           <input
                             type="text"
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             placeholder="Yapay zekaya bir mesaj gönder..."
-                            className="flex-1 w-full px-4 py-2 bg-zinc-800 border-zinc-700 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="flex-1 w-full px-4 py-3 sm:py-2 bg-zinc-800/80 border border-zinc-700 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner"
                             disabled={isGenerating}
                           />
                           <button
                               type="submit"
-                              className={`bg-blue-600 text-white rounded-full p-2 hover:bg-blue-700 disabled:bg-zinc-600 ${isGenerating ? 'opacity-75 pointer-events-none' : ''}`}
+                              className={`w-full sm:w-auto bg-blue-600 text-white rounded-full px-4 py-3 sm:py-2 hover:bg-blue-700 disabled:bg-zinc-600 shadow ${isGenerating ? 'opacity-75 pointer-events-none' : ''}`}
                               disabled={!input.trim() || isGenerating}
                           >
                               {/* Basit loading dönüşü için buton içinde dönen SVG koyabilirsin */}

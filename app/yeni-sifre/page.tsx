@@ -113,9 +113,12 @@ export default function NewPasswordPage() {
   }
 
   const validatePassword = (pwd: string) => {
-    if (pwd.length < 6) {
-      return 'Şifre en az 6 karakter olmalıdır.';
+    const passwordPolicy = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+
+    if (!passwordPolicy.test(pwd)) {
+      return 'Şifre en az 8 karakter olmalı ve küçük harf, büyük harf ile rakam içermelidir.';
     }
+
     return null;
   };
 
@@ -204,9 +207,9 @@ export default function NewPasswordPage() {
           </div>
         </div>
 
-        <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-          <main className="row-start-2 flex flex-col gap-8 items-center text-center">
-            <div className="w-full max-w-md bg-green-500/10 backdrop-blur-sm rounded-2xl p-8 border border-green-500/20 shadow-xl">
+        <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-6 pb-16 gap-12 sm:p-12 sm:pb-20 lg:p-20 font-[family-name:var(--font-geist-sans)]">
+          <main className="row-start-2 flex flex-col gap-8 items-center text-center px-2 sm:px-0">
+            <div className="w-full max-w-md bg-green-500/10 backdrop-blur-sm rounded-2xl p-6 sm:p-8 border border-green-500/20 shadow-xl">
               <div className="text-center">
                 <div className="text-6xl mb-6">✅</div>
                 <h1 className="text-3xl font-bold text-green-400 font-mono mb-4">
@@ -254,9 +257,9 @@ export default function NewPasswordPage() {
           {error && <Notification message={error} type="error" onClose={() => setError(null)} />}
         </AnimatePresence>
 
-        <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-          <main className="row-start-2 flex flex-col gap-8 items-center text-center">
-            <div className="w-full max-w-md bg-red-500/10 backdrop-blur-sm rounded-2xl p-8 border border-red-500/20 shadow-xl">
+        <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-6 pb-16 gap-12 sm:p-12 sm:pb-20 lg:p-20 font-[family-name:var(--font-geist-sans)]">
+          <main className="row-start-2 flex flex-col gap-8 items-center text-center px-2 sm:px-0">
+            <div className="w-full max-w-md bg-red-500/10 backdrop-blur-sm rounded-2xl p-6 sm:p-8 border border-red-500/20 shadow-xl">
               <div className="text-center">
                 <div className="text-6xl mb-6">❌</div>
                 <h1 className="text-3xl font-bold text-red-400 font-mono mb-4">
@@ -314,9 +317,9 @@ export default function NewPasswordPage() {
         {error && <Notification message={error} type="error" onClose={() => setError(null)} />}
       </AnimatePresence>
 
-      <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-        <main className="row-start-2 flex flex-col gap-8 items-center text-center sm:items-start sm:text-left">
-          <div className="relative w-full max-w-md bg-black/10 dark:bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-black/[.1] dark:border-white/[.1] shadow-xl">
+      <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-6 pb-16 gap-12 sm:p-12 sm:pb-20 lg:p-20 font-[family-name:var(--font-geist-sans)]">
+        <main className="row-start-2 flex flex-col gap-8 items-center text-center sm:items-start sm:text-left px-2 sm:px-0">
+          <div className="relative w-full max-w-md bg-black/10 dark:bg-white/5 backdrop-blur-sm rounded-2xl p-6 sm:p-8 border border-black/[.1] dark:border-white/[.1] shadow-xl">
             {/* Geri butonu */}
             <button
               onClick={handleBackToLogin}
@@ -354,7 +357,7 @@ export default function NewPasswordPage() {
                   placeholder="yeni şifrenizi giriniz."
                   className="w-full h-10 px-4 bg-black/[.05] dark:bg-white/[.06] border border-solid border-black/[.08] dark:border-white/[.145] rounded-lg focus:outline-none focus:ring-2 focus:ring-black/30 dark:focus:ring-white/30 font-semibold"
                   disabled={isLoading}
-                  minLength={6}
+                  minLength={8}
                 />
               </div>
 
@@ -374,7 +377,7 @@ export default function NewPasswordPage() {
                   placeholder="şifrenizi tekrar giriniz."
                   className="w-full h-10 px-4 bg-black/[.05] dark:bg-white/[.06] border border-solid border-black/[.08] dark:border-white/[.145] rounded-lg focus:outline-none focus:ring-2 focus:ring-black/30 dark:focus:ring-white/30 font-semibold"
                   disabled={isLoading}
-                  minLength={6}
+                  minLength={8}
                 />
               </div>
 
@@ -388,9 +391,9 @@ export default function NewPasswordPage() {
             </form>
 
             {/* Şifre gereksinimleri */}
-            <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-              <p className="text-blue-400 text-xs font-mono">
-                💡 Şifreniz en az 6 karakter olmalıdır. Güvenliğiniz için güçlü bir şifre seçin.
+            <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg text-left">
+              <p className="text-blue-400 text-xs font-mono leading-relaxed">
+                💡 Şifreniz en az 8 karakter olmalı; en az bir küçük harf, bir büyük harf ve bir rakam içermelidir.
               </p>
             </div>
           </div>

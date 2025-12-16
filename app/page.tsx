@@ -33,7 +33,12 @@ const VerificationUI = ({ email, onBack }: { email: string; onBack: () => void }
 
   return (
     <div className="relative flex flex-col gap-6 text-center max-w-md p-8 animate-fade-in">
-      <button onClick={onBack} className="absolute top-0 left-0 text-zinc-400 hover:text-foreground transition-colors" aria-label="Giriş formuna geri dön">
+      <button
+        type="button"
+        onClick={onBack}
+        className="absolute top-0 left-0 text-zinc-400 hover:text-foreground transition-colors"
+        aria-label="Giriş formuna geri dön"
+      >
         <ArrowLeftIcon className="h-6 w-6" />
       </button>
       <h1 className="text-3xl font-bold text-foreground font-mono">
@@ -74,6 +79,8 @@ export default function Home() {
   const [showBg, setShowBg] = useState(false);
   const [isSignUpHovered, setIsSignUpHovered] = useState(false);
 
+  const isValidEmail = (value: string) => /.+@.+\..+/.test(value.trim());
+
   // ParticleColors'i memoize et - her render'da yeni array oluşmasını önle
   const particleColors = useMemo(() => ['#ffffff', '#ffffff'], []);
 
@@ -97,6 +104,7 @@ export default function Home() {
           // E-posta doğrulanmamış ve verification ekranındayız
           setSuccessMessage('E-posta doğrulama başarılı. Lütfen giriş yapın.');
           supabase.auth.signOut();
+          sessionStorage.removeItem('verificationEmail');
           setUiState('form');
         }
       }
@@ -113,6 +121,19 @@ export default function Home() {
   }, [router, uiState]);
 
   useEffect(() => {
+    const storedEmail = sessionStorage.getItem('verificationEmail');
+    if (storedEmail) {
+      setEmail(storedEmail);
+    }
+
+    const signupSuccessEmail = sessionStorage.getItem('signupSuccessEmail');
+    if (signupSuccessEmail) {
+      setSuccessMessage(`Doğrulama bağlantısı "${signupSuccessEmail}" adresine gönderildi. E-posta kutunuzu kontrol edin.`);
+      sessionStorage.removeItem('signupSuccessEmail');
+    }
+  }, []);
+
+  useEffect(() => {
     const timer = setTimeout(() => setShowBg(true), 3000);
     return () => clearTimeout(timer);
   }, []);
@@ -127,9 +148,22 @@ export default function Home() {
     }
   }, [error, successMessage]);
 
-  const handleSignIn = async () => {
+  const handleSignIn = async (event?: React.FormEvent) => {
+    event?.preventDefault();
     setError(null);
     setIsLoading(true);
+
+    if (!isValidEmail(email)) {
+      setIsLoading(false);
+      setError('Lütfen geçerli bir e-posta adresi girin.');
+      return;
+    }
+
+    if (!password.trim()) {
+      setIsLoading(false);
+      setError('Şifre alanı boş bırakılamaz.');
+      return;
+    }
     
     try {
       console.log('Giriş denemesi başladı:', email);
@@ -195,6 +229,11 @@ export default function Home() {
     router.push('/signup');
   };
 
+  const handleBackToForm = () => {
+    sessionStorage.removeItem('verificationEmail');
+    setUiState('form');
+  };
+
   return (
     <>
       {/* Arka Plan Animasyonu */}
@@ -218,44 +257,46 @@ export default function Home() {
         {successMessage && <Notification message={successMessage} type="success" onClose={() => setSuccessMessage(null)} />}
       </AnimatePresence>
 
-      <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-        <main className="flex flex-col gap-8 row-start-2 items-center text-center sm:items-start sm:text-left">
+      <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-6 pb-16 gap-12 sm:p-12 sm:pb-20 lg:p-20 font-[family-name:var(--font-geist-sans)]">
+        <main className="flex flex-col gap-6 sm:gap-8 row-start-2 items-center text-center sm:items-start sm:text-left w-full max-w-3xl px-2 sm:px-0">
           {uiState === 'form' ? (
             <>
-              <div className="text-4xl sm:text-5xl font-mono text-foreground leading-tight">
+              <div className="text-3xl sm:text-5xl font-mono text-foreground leading-tight">
                 <DecryptedText text="sohbet etmek için" animateOn="view" sequential revealDirection="start" speed={60} />
                 <br />
                 <DecryptedText text="giriş yapın." animateOn="view" sequential revealDirection="start" speed={60} />
               </div>
               <div className="w-full max-w-sm space-y-4">
-                <div className="space-y-3">
-                  <input
-                    type="email"
-                    placeholder="e-posta adresi"
-                    className="w-full h-10 px-4 bg-black/[.05] dark:bg-white/[.06] border border-solid border-black/[.08] dark:border-white/[.145] rounded-lg focus:outline-none focus:ring-2 focus:ring-black/30 dark:focus:ring-white/30"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                  />
-                  <input
-                    type="password"
-                    placeholder="şifre"
-                    className="w-full h-10 px-4 bg-black/[.05] dark:bg-white/[.06] border border-solid border-black/[.08] dark:border-white/[.145] rounded-lg focus:outline-none focus:ring-2 focus:ring-black/30 dark:focus:ring-white/30"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-4 mb-8">
-                  <button
-                    onClick={handleSignIn}
-                    disabled={isLoading}
-                    className="w-full sm:w-auto rounded-full bg-foreground text-background transition-colors flex items-center justify-center gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 px-5 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isLoading ? '...' : 'giriş yap'}
-                  </button>
-                  <Link href="/forgotPassword" className="text-sm text-zinc-400 hover:text-foreground transition-colors whitespace-nowrap">
-                    şifrenizi mi unuttunuz?
-                  </Link>
-                </div>
+                <form onSubmit={handleSignIn} className="space-y-3">
+                  <div className="space-y-3">
+                    <input
+                      type="email"
+                      placeholder="e-posta adresi"
+                      className="w-full h-10 px-4 bg-black/[.05] dark:bg-white/[.06] border border-solid border-black/[.08] dark:border-white/[.145] rounded-lg focus:outline-none focus:ring-2 focus:ring-black/30 dark:focus:ring-white/30"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                    />
+                    <input
+                      type="password"
+                      placeholder="şifre"
+                      className="w-full h-10 px-4 bg-black/[.05] dark:bg-white/[.06] border border-solid border-black/[.08] dark:border-white/[.145] rounded-lg focus:outline-none focus:ring-2 focus:ring-black/30 dark:focus:ring-white/30"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-4 mb-8">
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full sm:w-auto rounded-full bg-foreground text-background transition-colors flex items-center justify-center gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 px-5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoading ? '...' : 'giriş yap'}
+                    </button>
+                    <Link href="/forgotPassword" className="text-sm text-zinc-400 hover:text-foreground transition-colors whitespace-nowrap">
+                      şifrenizi mi unuttunuz?
+                    </Link>
+                  </div>
+                </form>
                 <div className="pt-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
                   hesabınız yok mu?{' '}
                   <div
@@ -301,7 +342,7 @@ export default function Home() {
               </div>
             </>
           ) : (
-            <VerificationUI email={email} onBack={() => setUiState('form')} />
+            <VerificationUI email={email} onBack={handleBackToForm} />
           )}
         </main>
         <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
