@@ -255,9 +255,9 @@ export default function ChatPage() {
     }
 
       return (
-    <div className="relative flex h-screen bg-background text-foreground font-[family-name:var(--font-geist-sans)]">
+    <div className="relative flex min-h-screen bg-background text-foreground font-[family-name:var(--font-geist-sans)]">
       <aside
-        className={`fixed inset-y-0 left-0 z-30 flex flex-col bg-zinc-900/70 backdrop-blur-xl border-r border-zinc-800 transition-transform duration-300 ease-in-out w-64 max-w-[78vw] ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed inset-y-0 left-0 z-30 flex flex-col bg-zinc-900/80 backdrop-blur-xl border-r border-zinc-800/80 shadow-2xl transition-transform duration-300 ease-in-out w-64 max-w-[78vw] ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="flex flex-col h-full overflow-hidden">
           <button onClick={handleNewChat} className="flex-shrink-0 w-full text-left p-2 rounded hover:bg-zinc-800 transition-colors whitespace-nowrap text-sm sm:text-base">
@@ -293,12 +293,16 @@ export default function ChatPage() {
           </div>
         </div>
       </aside>
-          <div className="relative flex-1 px-3 sm:px-6">
-              <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="absolute top-4 left-2 sm:left-0 z-20 p-2 bg-zinc-800/90 hover:bg-zinc-700 rounded-full border border-zinc-700 text-white transition-all shadow-lg">
-                  <SidebarToggleIcon isOpen={isSidebarOpen} />
+          <div className="relative flex-1 flex flex-col min-h-screen px-4 sm:px-6 lg:px-10 max-w-6xl mx-auto w-full">
+              <button
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className="fixed top-4 left-4 sm:left-6 z-40 p-2 bg-zinc-900/90 hover:bg-zinc-800 text-white rounded-full border border-zinc-700 shadow-xl transition-transform duration-300"
+                aria-label="Kenar çubuğunu aç/kapat"
+              >
+                <SidebarToggleIcon isOpen={isSidebarOpen} />
               </button>
-              <main className="flex flex-col h-screen">
-                  <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+              <main className="flex flex-col pt-16 pb-6 h-full min-h-screen">
+                  <div className="flex-1 overflow-y-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-4 rounded-2xl border border-zinc-800/80 bg-background/80 shadow-lg">
                       {messages.length === 0 && (
                           <div className="flex h-full items-center justify-center text-zinc-500">
                               <p>Sohbeti başlatmak için bir mesaj gönderin.</p>
@@ -319,8 +323,8 @@ export default function ChatPage() {
                       ))}
                       <div ref={messagesEndRef} />
                   </div>
-                  <div className="border-t border-zinc-800 p-4 bg-background/80 backdrop-blur">
-                      <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 max-w-4xl mx-auto w-full">
+                  <div className="border-t border-zinc-800 p-4 sm:p-5 lg:p-6 bg-background/85 backdrop-blur-xl rounded-2xl shadow-xl max-w-5xl mx-auto w-full">
+                      <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
                           <input
                             type="text"
                             value={input}

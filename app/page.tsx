@@ -258,7 +258,7 @@ export default function Home() {
       </AnimatePresence>
 
       <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-6 pb-16 gap-12 sm:p-12 sm:pb-20 lg:p-20 font-[family-name:var(--font-geist-sans)]">
-        <main className="flex flex-col gap-6 sm:gap-8 row-start-2 items-center text-center sm:items-start sm:text-left w-full max-w-3xl px-2 sm:px-0">
+        <main className="flex flex-col gap-6 sm:gap-8 row-start-2 items-center text-center sm:items-center sm:text-center w-full max-w-3xl px-2 sm:px-4 lg:px-0">
           {uiState === 'form' ? (
             <>
               <div className="text-3xl sm:text-5xl font-mono text-foreground leading-tight">

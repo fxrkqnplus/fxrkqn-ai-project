@@ -150,7 +150,7 @@ export default function PasswordResetPage() {
       </AnimatePresence>
 
       <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-6 pb-16 gap-12 sm:p-12 sm:pb-20 lg:p-20 font-[family-name:var(--font-geist-sans)]">
-        <main className="row-start-2 flex flex-col gap-8 items-center text-center sm:items-start sm:text-left w-full max-w-2xl px-2 sm:px-0">
+        <main className="row-start-2 flex flex-col gap-8 items-center text-center sm:items-center sm:text-center w-full max-w-2xl px-2 sm:px-4 lg:px-0">
           <div className="relative w-full max-w-md bg-black/10 dark:bg-white/5 backdrop-blur-sm rounded-2xl p-6 sm:p-8 border border-black/[.1] dark:border-white/[.1] shadow-xl">
             {/* Geri butonu */}
             <button
