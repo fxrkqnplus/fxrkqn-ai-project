@@ -200,7 +200,6 @@ export default function NewPasswordPage() {
               particleSpread={15}
               speed={0.15}
               particleBaseSize={80}
-              moveParticlesOnHover
               alphaParticles={false}
               disableRotation={false}
             />
@@ -246,7 +245,6 @@ export default function NewPasswordPage() {
               particleSpread={8}
               speed={0.08}
               particleBaseSize={120}
-              moveParticlesOnHover
               alphaParticles={false}
               disableRotation={false}
             />
@@ -300,18 +298,17 @@ export default function NewPasswordPage() {
       {/* Arka Plan Animasyonu */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
         <div className={`w-full h-full transition-opacity duration-1000 ease-in-out ${showBg ? 'opacity-100' : 'opacity-0'}`}>
-          <Particles
-            particleColors={['#ffffff', '#ffffff']}
-            particleCount={150}
-            particleSpread={10}
-            speed={0.1}
-            particleBaseSize={100}
-            moveParticlesOnHover
-            alphaParticles={false}
-            disableRotation={false}
-          />
+            <Particles
+              particleColors={['#ffffff', '#ffffff']}
+              particleCount={150}
+              particleSpread={10}
+              speed={0.1}
+              particleBaseSize={100}
+              alphaParticles={false}
+              disableRotation={false}
+            />
+          </div>
         </div>
-      </div>
 
       <AnimatePresence>
         {error && <Notification message={error} type="error" onClose={() => setError(null)} />}
