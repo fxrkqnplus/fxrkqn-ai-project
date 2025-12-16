@@ -16,7 +16,7 @@ interface NotificationProps {
 
 export default function Notification({ message, type, onClose }: NotificationProps) {
     // Tipe göre renk belirleme
-    const baseClasses = "fixed top-5 left-1/2 -translate-x-1/2 z-50 flex items-center justify-between gap-4 w-full max-w-md p-4 rounded-lg border backdrop-blur-sm text-white";
+    const baseClasses = "fixed top-4 sm:top-5 left-1/2 -translate-x-1/2 z-50 flex items-center justify-between gap-3 sm:gap-4 w-[calc(100%-1.5rem)] max-w-lg p-3 sm:p-4 rounded-xl border backdrop-blur-md text-white shadow-lg";
     const typeClasses = type === 'success'
         ? "bg-green-900/50 border-green-700" // Başarı için yeşil tonları
         : "bg-zinc-900/80 border-zinc-700"; // Hata için eski stilimiz
