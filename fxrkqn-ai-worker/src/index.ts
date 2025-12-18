@@ -1,4 +1,5 @@
 import { Ai } from "@cloudflare/ai";
+import type { ModelName } from "@cloudflare/ai";
 
 export interface Env {
   AI: any; // Workers AI binding
@@ -105,7 +106,7 @@ function pickTextFromResult(result: any) {
   );
 }
 
-async function generateTitle(ai: Ai, model: string, userPrompt: string) {
+async function generateTitle(ai: Ai, model: ModelName, userPrompt: string) {
   const titleSystem = [
     "Sen bir başlık üretim aracısın.",
     "Kullanıcının metnini analiz et ve 1-5 kelimelik başlık üret.",
@@ -200,7 +201,7 @@ export default {
       return new Response("Bad Request (messages required)", { status: 400, headers: corsHeaders(corsOrigin) });
     }
 
-    const model = env.MODEL || "@cf/meta/llama-3.1-8b-instruct-fast";
+    const model = (env.MODEL || "@cf/meta/llama-3.1-8b-instruct-fast") as ModelName;
     const ai = new Ai(env.AI);
 
     const normalized = normalizeMessages(messages);
@@ -219,8 +220,7 @@ export default {
       const answerText = pickTextFromResult(answerResult);
 
       // 2) BAŞLIK (sadece son user prompt ile)
-      const title =
-        userPrompt.length > 0 ? await generateTitle(ai, model, userPrompt) : "Yeni Sohbet";
+      const title = userPrompt.length > 0 ? await generateTitle(ai, model, userPrompt) : "Yeni Sohbet";
 
       // ✅ Backward compatible alanlar:
       // - response: eski frontend’in data.response beklediği yer
