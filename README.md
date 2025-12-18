@@ -1,19 +1,19 @@
 # FXRKQN AI - Yapay Zeka Web Sitesi
 
 **Proje Açıklaması**  
-FXRKQN AI, retro‑modern tasarım çizgilerine sahip, Next.js 15 ve React 19 ile geliştirilmiş bir yapay zeka web sitesi projesidir. Uygulama kullanıcı giriş/üye olma işlemlerini Supabase ile yönetir, ardından sohbet arayüzünde kullanıcıların AI modelleriyle etkileşime girerek konuşmalar oluşturmasına olanak tanır. AI altyapısı Cloudflare Workers üzerinde çalışan bir hizmetle sağlanır; Chat mesajlarını işler ve cevapları modeller üzerinden üretir【735795864164768†L0-L15】.
+FXRKQN AI, retro‑modern tasarım çizgilerine sahip, Next.js 15 ve React 19 ile geliştirilmiş bir yapay zeka web sitesi projesidir. Uygulama kullanıcı giriş/üye olma işlemlerini Supabase ile yönetir, ardından sohbet arayüzünde kullanıcıların AI modelleriyle etkileşime girerek konuşmalar oluşturmasına olanak tanır. AI altyapısı Cloudflare Workers üzerinde çalışan bir hizmetle sağlanır; Chat mesajlarını işler ve cevapları modeller üzerinden üretir.
 
 ## 🚀 Özellikler
 
 - **Next.js 15**: Sunucu tarafı ve istemci bileşenleriyle modüler bir yapı.
 - **Supabase Kimlik Doğrulama**: Kullanıcı kayıt, giriş ve e‑posta doğrulaması yerleşik olarak desteklenir.
-- **Sohbet Arayüzü**: Kullanıcı ve model mesajlarını listeleyen modern bir sohbet bileşeni. Konuşmalar sıralanır ve sabitleme/pin özelliği sayesinde önemli konuşmalar liste başında tutulabilir【813009047113745†L340-L349】.
-- **Pinleme ve Yedekleme**: Kullanıcılar bir konuşmayı sabitlediğinde `Pick<Conversation, "pinned" | "pinned_at">` tipiyle yalnızca ilgili alanlar güncellenir; böylece linter hataları olmadan veritabanı güncellemeleri yapılır【813009047113745†L340-L349】.
+- **Sohbet Arayüzü**: Kullanıcı ve model mesajlarını listeleyen modern bir sohbet bileşeni. Konuşmalar sıralanır ve sabitleme/pin özelliği sayesinde önemli konuşmalar liste başında tutulabilir.
+- **Pinleme ve Yedekleme**: Kullanıcılar bir konuşmayı sabitlediğinde `Pick<Conversation, "pinned" | "pinned_at">` tipiyle yalnızca ilgili alanlar güncellenir; böylece linter hataları olmadan veritabanı güncellemeleri yapılır.
 - **Akıllı Başlık Üretimi**: Sohbet mesajı gönderildiğinde Cloudflare Worker, metni analiz ederek 1‑5 kelimelik bir başlık üretir ve bu başlık konuşmanın başlığı olarak kaydedilir.
 - **Akışlı Yanıt Gösterimi**: `AnimatedStream` bileşeni AI yanıtını karakter karakter akış halinde göstererek kullanıcılara dinamik bir deneyim sunar.
 - **Bildirim Sistemi**: Başarılı veya hatalı işlemler için ekranın üstünde kayan bildirimler.
 - **Retro/Modern Tasarım ve Partiküller**: `DecryptedText` ve `Particles` bileşenleri ile sayfalarda retro metin animasyonları ve 3D partikül arkaplanı kullanılır.
-- **Supabase Edge Function (ask‑gemini)**: Opsiyonel olarak Google Gemini modelleri üzerinden yanıt üretmek için Supabase fonksiyonu bulunur. Fonksiyon, kullanılabilir Gemini modelini seçer ve gerektiğinde fallback ile yeniden deneyerek üretken AI yanıtı döner【222310416531034†L35-L65】【222310416531034†L93-L104】.
+- **Supabase Edge Function (ask‑gemini)**: Opsiyonel olarak Google Gemini modelleri üzerinden yanıt üretmek için Supabase fonksiyonu bulunur. Fonksiyon, kullanılabilir Gemini modelini seçer ve gerektiğinde fallback ile yeniden deneyerek üretken AI yanıtı döner.
 - **GitHub Actions CI/CD**: Her push işleminde test, lint ve build aşamalarını otomatik çalıştıran bir iş akışı (workflow) yapılandırılmıştır.
 
 ## 🧠 Mimari
@@ -21,7 +21,7 @@ FXRKQN AI, retro‑modern tasarım çizgilerine sahip, Next.js 15 ve React 19 il
 Proje iki ana bileşenden oluşur:
 
 1. **Web Uygulaması (fxrkqn‑ai)**  
-   - `app/` klasörü Next.js app router sayfalarını içerir. Örneğin `app/chat/page.tsx`, konuşma listesini, mesaj formunu ve AI yanıtlarını yöneten ana sohbet bileşenidir. Kullanıcı mesajı gönderildiğinde `fetch` çağrısı yaparak Cloudflare Worker üzerinden AI cevabı alır ve dönen JSON verisini `Record<string, unknown>` tipinde parse eder【813009047113745†L580-L590】.
+   - `app/` klasörü Next.js app router sayfalarını içerir. Örneğin `app/chat/page.tsx`, konuşma listesini, mesaj formunu ve AI yanıtlarını yöneten ana sohbet bileşenidir. Kullanıcı mesajı gönderildiğinde `fetch` çağrısı yaparak Cloudflare Worker üzerinden AI cevabı alır ve dönen JSON verisini `Record<string, unknown>` tipinde parse eder.
    - `components/` klasörü `AnimatedStream`, `DecryptedText`, `Notification`, `Particles` gibi atomik bileşenleri barındırır.
    - `lib/supabaseClient.ts` dosyası `createClient` fonksiyonuyla Supabase istemcisini başlatır.
    - Ortak stil ve animasyonlar Tailwind CSS ve Framer Motion kullanılarak uygulanır.
@@ -29,16 +29,11 @@ Proje iki ana bileşenden oluşur:
    - .env dosyasında `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_AI_WORKER_URL` gibi ayarların tanımlı olması gerekir.
 
 2. **Cloudflare AI Worker (fxrkqn‑ai‑worker)**  
-   - `fxrkqn-ai-worker/src/index.ts` dosyasında Cloudflare Workers ortamında çalışan bir AI proxy’si tanımlıdır. Worker, `@cloudflare/ai` kütüphanesini kullanarak belirtilen modeli (`env.MODEL`) çağırır.  Model ismi için `ModelName` tipi `Ai["run"]` parametresinden türetilir; böylece tip güvende kalır【735795864164768†L0-L15】.
+   - `fxrkqn-ai-worker/src/index.ts` dosyasında Cloudflare Workers ortamında çalışan bir AI proxy’si tanımlıdır. Worker, `@cloudflare/ai` kütüphanesini kullanarak belirtilen modeli (`env.MODEL`) çağırır.  Model ismi için `ModelName` tipi `Ai["run"]` parametresinden türetilir; böylece tip güvende kalır.
    - Worker, gelen talepleri doğrulamak için Supabase access token’ı kontrol eder, günlük istek limitini bir KV veritabanında izler ve aşıldığında hata döndürür.
    - AI yanıtı üretmek için `ai.run(model, ...)` fonksiyonu çağrılır; yanıt içeriği ve başlık 1‑5 kelime olacak şekilde `generateTitle` fonksiyonuyla işlenir.
    - Ortaya çıkan veri JSON olarak döndürülür: `answer`, `title`, `remainingToday`, `maxPerDay` alanlarını içerir.
    - Worker’ı lokal olarak `npm run dev` ile Next.js server’ından bağımsız çalıştırabilir, `wrangler deploy` ile Cloudflare hesabınıza deploy edebilirsiniz.
-
-3. **Supabase Edge Functions (supabase/functions)**  
-   - `ask-gemini/index.ts` fonksiyonu, Google Generative Language API üzerinden Gemini modellerini çağıran bir Edge Function’dır. Mevcut modelleri listeleyerek desteklenen bir model seçer ve `generateContent` yöntemiyle yanıt üretir【222310416531034†L35-L65】.  
-   - Yanıt geçersiz veya yetersizse, fonksiyon fallback olarak son kullanıcı mesajını tek başına gönderir ve yeni bir yanıt üretir【222310416531034†L186-L224】.  
-   - Bu fonksiyon Supabase CLI ile deploy edilerek Cloudflare Worker’e alternatif/yardımcı bir AI katmanı sunar.
 
 ## 👋 Gereksinimler
 
@@ -74,10 +69,8 @@ Proje iki ana bileşenden oluşur:
    ALLOWED_ORIGIN=http://localhost:3000
    MODEL=@cf/meta/llama-3.1-8b-instruct-fast
    MAX_REQ_PER_DAY=40
-   GEMINI_API_KEY=...
    REQUIRE_AUTH=false
    ```
-   `GEMINI_API_KEY` sadece ask‑gemini fonksiyonunu kullanıyorsanız gereklidir.
 
 ## 🏃 Lokal Geliştirme
 
@@ -133,15 +126,12 @@ Değişikliklerinizi GitHub’a yüklerken Türkçe karakter problemi yaşamamak
 fxrkqn-ai-project/
 ├── fxrkqn-ai/               # Next.js 15 uygulaması
 │   ├── app/                 # Uygulama sayfaları (page.tsx dosyaları)
-│   │   └── chat/page.tsx    # Ana sohbet arayüzü ve mesaj işleme【813009047113745†L580-L590】
+│   │   └── chat/page.tsx    # Ana sohbet arayüzü ve mesaj işleme
 │   ├── components/          # Paylaşılan React bileşenleri
 │   ├── lib/                 # Yardımcı modüller (ör. supabaseClient)
 │   └── public/              # Statik dosyalar
 ├── fxrkqn-ai-worker/        # Cloudflare Worker
-│   └── src/index.ts         # AI proxy ve rate-limit sistemi【735795864164768†L0-L15】
-└── supabase/
-    └── functions/
-        └── ask-gemini/      # Gemini API fonksiyonu【222310416531034†L93-L104】
+│   └── src/index.ts         # AI proxy ve rate-limit sistemi
 ```
 
 ## 🔗 Kaynaklar ve Dokümantasyon
@@ -149,7 +139,6 @@ fxrkqn-ai-project/
 - [Next.js](https://nextjs.org/docs)
 - [Supabase](https://supabase.com/docs)
 - [Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai/)
-- [Google Gemini API](https://cloud.google.com/vertex-ai/generative-ai/docs/models/gemini)
 
 ## 📝 Lisans
 
