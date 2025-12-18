@@ -555,7 +555,7 @@ export default function ChatPage() {
           typeof data.response === "string" ? data.response :
           "";
 
-        const titleFromWorker = typeof data.title === "string" ? data.title : "";
+  const titleFromWorker = typeof data.title === "string" ? data.title : null;
 
         setMessages((prev) => [...prev, { role: "model", content: fullResponse }]);
 
@@ -1098,3 +1098,5 @@ export default function ChatPage() {
     </div>
   );
 }
+
+// Güncelleme tarihi: 18.12.2025
