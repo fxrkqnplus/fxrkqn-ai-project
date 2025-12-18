@@ -1099,4 +1099,4 @@ export default function ChatPage() {
   );
 }
 
-// Güncelleme tarihi: 18.12.2025
+// Güncelleme tarihi: 18.12.2025 03:28
