@@ -1,4 +1,5 @@
 // supabase/functions/generate-title/index.ts
+/*
 import { corsHeaders } from '../_shared/cors.ts';
 
 console.log("generate-title cold start");

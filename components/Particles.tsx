@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { Renderer, Camera, Geometry, Program, Mesh } from "ogl";
 
 interface ParticlesProps {
@@ -19,11 +19,9 @@ interface ParticlesProps {
 const defaultColors: string[] = ["#ffffff", "#ffffff", "#ffffff"];
 
 const hexToRgb = (hex: string): [number, number, number] => {
-  hex = hex.replace(/^#/, "");
-  if (hex.length === 3) {
-    hex = hex.split("").map((c) => c + c).join("");
-  }
-  const int = parseInt(hex, 16);
+  let clean = hex.replace(/^#/, "");
+  if (clean.length === 3) clean = clean.split("").map((c) => c + c).join("");
+  const int = parseInt(clean, 16);
   const r = ((int >> 16) & 255) / 255;
   const g = ((int >> 8) & 255) / 255;
   const b = (int & 255) / 255;
@@ -34,7 +32,7 @@ const vertex = /* glsl */ `
   attribute vec3 position;
   attribute vec4 random;
   attribute vec3 color;
-  
+
   uniform mat4 modelMatrix;
   uniform mat4 viewMatrix;
   uniform mat4 projectionMatrix;
@@ -42,23 +40,23 @@ const vertex = /* glsl */ `
   uniform float uSpread;
   uniform float uBaseSize;
   uniform float uSizeRandomness;
-  
+
   varying vec4 vRandom;
   varying vec3 vColor;
-  
+
   void main() {
     vRandom = random;
     vColor = color;
-    
+
     vec3 pos = position * uSpread;
     pos.z *= 10.0;
-    
+
     vec4 mPos = modelMatrix * vec4(pos, 1.0);
     float t = uTime;
     mPos.x += sin(t * random.z + 6.28 * random.w) * mix(0.1, 1.5, random.x);
     mPos.y += sin(t * random.y + 6.28 * random.x) * mix(0.1, 1.5, random.w);
     mPos.z += sin(t * random.w + 6.28 * random.y) * mix(0.1, 1.5, random.z);
-    
+
     vec4 mvPos = viewMatrix * mPos;
     gl_PointSize = (uBaseSize * (1.0 + uSizeRandomness * (random.x - 0.5))) / length(mvPos.xyz);
     gl_Position = projectionMatrix * mvPos;
@@ -67,20 +65,18 @@ const vertex = /* glsl */ `
 
 const fragment = /* glsl */ `
   precision highp float;
-  
+
   uniform float uTime;
   uniform float uAlphaParticles;
   varying vec4 vRandom;
   varying vec3 vColor;
-  
+
   void main() {
     vec2 uv = gl_PointCoord.xy;
     float d = length(uv - vec2(0.5));
-    
+
     if(uAlphaParticles < 0.5) {
-      if(d > 0.5) {
-        discard;
-      }
+      if(d > 0.5) discard;
       gl_FragColor = vec4(vColor + 0.2 * sin(uv.yxx + uTime + vRandom.y * 6.28), 1.0);
     } else {
       float circle = smoothstep(0.5, 0.4, d) * 0.8;
@@ -89,7 +85,7 @@ const fragment = /* glsl */ `
   }
 `;
 
-const Particles: React.FC<ParticlesProps> = React.memo(({
+const Particles: React.FC<ParticlesProps> = ({
   particleCount = 200,
   particleSpread = 10,
   speed = 0.1,
@@ -106,12 +102,26 @@ const Particles: React.FC<ParticlesProps> = React.memo(({
   const containerRef = useRef<HTMLDivElement>(null);
   const mouseRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
+  // Palette "değişebilir" ama sahneyi her render’da yeniden kurmak istemiyoruz.
+  // Bu yüzden palette’i memo’layıp bir ref’e yazacağız.
+  const palette = useMemo(
+    () => (particleColors && particleColors.length > 0 ? particleColors : defaultColors),
+    [particleColors]
+  );
+  const paletteRef = useRef<string[]>(palette);
+
+  useEffect(() => {
+    paletteRef.current = palette;
+  }, [palette]);
+
+  // ÖNEMLİ: Sahne kurulumu sadece mount'ta çalışır.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const renderer = new Renderer({ depth: false, alpha: true });
     const gl = renderer.gl;
+
     container.appendChild(gl.canvas);
     gl.clearColor(0, 0, 0, 0);
 
@@ -124,6 +134,7 @@ const Particles: React.FC<ParticlesProps> = React.memo(({
       renderer.setSize(width, height);
       camera.perspective({ aspect: gl.canvas.width / gl.canvas.height });
     };
+
     window.addEventListener("resize", resize, false);
     resize();
 
@@ -142,21 +153,26 @@ const Particles: React.FC<ParticlesProps> = React.memo(({
     const positions = new Float32Array(count * 3);
     const randoms = new Float32Array(count * 4);
     const colors = new Float32Array(count * 3);
-    // particleColors'i dependency array'den çıkarıyoruz - sadece ilk render'da kullanılacak
-    const palette = (particleColors && particleColors.length > 0 ? particleColors : defaultColors);
+
+    // palette'yi SADECE ilk kurulumda kullanıyoruz: her tuş basmada reset yok.
+    const initialPalette = paletteRef.current;
 
     for (let i = 0; i < count; i++) {
       let x: number, y: number, z: number, len: number;
+
       do {
         x = Math.random() * 2 - 1;
         y = Math.random() * 2 - 1;
         z = Math.random() * 2 - 1;
         len = x * x + y * y + z * z;
       } while (len > 1 || len === 0);
+
       const r = Math.cbrt(Math.random());
       positions.set([x * r, y * r, z * r], i * 3);
+
       randoms.set([Math.random(), Math.random(), Math.random(), Math.random()], i * 4);
-      const col = hexToRgb(palette[Math.floor(Math.random() * palette.length)]);
+
+      const col = hexToRgb(initialPalette[Math.floor(Math.random() * initialPalette.length)]);
       colors.set(col, i * 3);
     }
 
@@ -182,12 +198,13 @@ const Particles: React.FC<ParticlesProps> = React.memo(({
 
     const particles = new Mesh(gl, { mode: gl.POINTS, geometry, program });
 
-    let animationFrameId: number;
+    let animationFrameId = 0;
     let lastTime = performance.now();
     let elapsed = 0;
 
     const update = (t: number) => {
       animationFrameId = requestAnimationFrame(update);
+
       const delta = t - lastTime;
       lastTime = t;
       elapsed += delta * speed;
@@ -215,69 +232,15 @@ const Particles: React.FC<ParticlesProps> = React.memo(({
 
     return () => {
       window.removeEventListener("resize", resize);
-      if (moveParticlesOnHover) {
-        container.removeEventListener("mousemove", handleMouseMove);
-      }
-      cancelAnimationFrame(animationFrameId);
-      if (container.contains(gl.canvas)) {
-        container.removeChild(gl.canvas);
-      }
+      if (moveParticlesOnHover) container.removeEventListener("mousemove", handleMouseMove);
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      if (container.contains(gl.canvas)) container.removeChild(gl.canvas);
     };
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    particleCount,
-    particleSpread,
-    speed,
-    moveParticlesOnHover,
-    particleHoverFactor,
-    alphaParticles,
-    particleBaseSize,
-    sizeRandomness,
-    cameraDistance,
-    disableRotation,
-    // particleColors'i dependency array'den çıkarıyoruz - animasyonun yeniden başlamasını önlemek için
-  ]);
+  }, []); // sahneyi sadece 1 kere kur
 
-  return (
-    <div
-      ref={containerRef}
-      className={`relative w-full h-full ${className}`}
-    />
-  );
-});
+  return <div ref={containerRef} className={`relative h-full w-full ${className ?? ""}`} />;
+};
 
-Particles.displayName = 'Particles';
-
-// Custom comparison function - particleColors array'ini deep compare et
-export default React.memo(Particles, (prevProps, nextProps) => {
-  // Tüm prop'ları karşılaştır
-  if (
-    prevProps.particleCount !== nextProps.particleCount ||
-    prevProps.particleSpread !== nextProps.particleSpread ||
-    prevProps.speed !== nextProps.speed ||
-    prevProps.moveParticlesOnHover !== nextProps.moveParticlesOnHover ||
-    prevProps.particleHoverFactor !== nextProps.particleHoverFactor ||
-    prevProps.alphaParticles !== nextProps.alphaParticles ||
-    prevProps.particleBaseSize !== nextProps.particleBaseSize ||
-    prevProps.sizeRandomness !== nextProps.sizeRandomness ||
-    prevProps.cameraDistance !== nextProps.cameraDistance ||
-    prevProps.disableRotation !== nextProps.disableRotation ||
-    prevProps.className !== nextProps.className
-  ) {
-    return false; // Props değişti, re-render yap
-  }
-  
-  // particleColors array'ini karşılaştır
-  const prevColors = prevProps.particleColors || [];
-  const nextColors = nextProps.particleColors || [];
-  if (prevColors.length !== nextColors.length) {
-    return false;
-  }
-  for (let i = 0; i < prevColors.length; i++) {
-    if (prevColors[i] !== nextColors[i]) {
-      return false;
-    }
-  }
-  
-  return true; // Props aynı, re-render yapma
-});
+export default Particles;

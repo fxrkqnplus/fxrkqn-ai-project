@@ -37,3 +37,4 @@ jobs:
           echo "❌ Build failed - .next directory not found"
           exit 1
         fi
+

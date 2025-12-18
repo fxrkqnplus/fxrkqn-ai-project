@@ -1,0 +1,42 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+ {
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "fxrkqn-ai-worker",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-01-01",
+  
+	"observability": {
+	  "enabled": true
+	},
+  
+	// ✅ Workers AI binding
+	"ai": { "binding": "AI" },
+  
+	// ✅ KV binding (rate limit)
+	"kv_namespaces": [
+	  {
+		"binding": "RL",
+		"id": "23e1629d16d84b05aab0e0f29987b520",
+		"preview_id": "82ba3cad429942aba4eb8d06a19ec317"
+	  }
+	],
+  
+	// ✅ Env vars (prod'da secrets önerilir)
+		"vars": {
+		"ALLOWED_ORIGIN": "http://localhost:3000,http://127.0.0.1:3000",
+		"MAX_REQ_PER_DAY": "40",
+		"MODEL": "@cf/meta/llama-3.1-8b-instruct-fast",
+		"SUPABASE_URL": "https://hfzqvrhgqtevpoklewfs.supabase.co",
+		"SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmenF2cmhncXRldnBva2xld2ZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEyNDM5MDMsImV4cCI6MjA2NjgxOTkwM30.u0XNaBPYW1HdgPal31vLWnn2biXum8YGERjTD-05zYk"
+		}
+	}
+  
+	/**
+	 * Smart Placement
+	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
+	 */
+	// "placement": { "mode": "smart" }
+  

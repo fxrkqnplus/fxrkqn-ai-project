@@ -1,4 +1,5 @@
 // supabase/functions/ask-gemini/index.ts
+/*
 import { corsHeaders } from '../_shared/cors.ts'
 
 console.log("ask-gemini function cold start");
