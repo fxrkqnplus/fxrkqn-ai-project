@@ -183,7 +183,7 @@ export default function ChatPage() {
     };
 
     window.addEventListener("pointerdown", onPointerDown, { capture: true });
-    return () => window.removeEventListener("pointerdown", onPointerDown, { capture: true } as any);
+    return () => window.removeEventListener("pointerdown", onPointerDown, { capture: true });
   }, [openMenuForId, profileOpen]);
 
   // Auth bootstrap
@@ -317,9 +317,9 @@ export default function ChatPage() {
       );
 
       try {
-        const patch: Partial<Conversation> = nextPinned
-          ? ({ pinned: true, pinned_at: new Date().toISOString() } as any)
-          : ({ pinned: false, pinned_at: null } as any);
+        const patch: Pick<Conversation, "pinned" | "pinned_at"> = nextPinned
+          ? { pinned: true, pinned_at: new Date().toISOString() }
+          : { pinned: false, pinned_at: null };
 
         const { error } = await supabase
           .from("conversations")
