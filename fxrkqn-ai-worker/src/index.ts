@@ -1,5 +1,6 @@
 import { Ai } from "@cloudflare/ai";
-import type { ModelName } from "@cloudflare/ai";
+
+type ModelName = Parameters<Ai["run"]>[0];
 
 export interface Env {
   AI: any; // Workers AI binding
