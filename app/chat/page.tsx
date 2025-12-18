@@ -547,14 +547,15 @@ export default function ChatPage() {
           throw new Error(`AI hatası (status ${response.status}): ${errText}`);
         }
 
-        const data = await response.json();
+        const raw = await response.json();
+        const data = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
 
         const fullResponse =
-          (typeof data?.answer === "string" && data.answer) ||
-          (typeof data?.response === "string" && data.response) ||
+          typeof data.answer === "string" ? data.answer :
+          typeof data.response === "string" ? data.response :
           "";
 
-        const titleFromWorker = (typeof data?.title === "string" && data.title) || null;
+        const titleFromWorker = typeof data.title === "string" ? data.title : "";
 
         setMessages((prev) => [...prev, { role: "model", content: fullResponse }]);
 
