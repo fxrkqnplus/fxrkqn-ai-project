@@ -68,10 +68,16 @@ Proje iki ana bileşenden oluşur:
    SUPABASE_ANON_KEY=...
    SUPABASE_URL=...
    ALLOWED_ORIGIN=http://localhost:3000
-   MODEL=@cf/meta/llama-3.1-8b-instruct-fast
+   MODEL=@cf/ibm-granite/granite-4.0-h-micro
+   MODEL_FAST=@cf/ibm-granite/granite-4.0-h-micro
+   MODEL_THINK=@cf/meta/llama-3.1-8b-instruct-fast
+   MODEL_MEMORY=@cf/ibm-granite/granite-4.0-h-micro
    MAX_REQ_PER_DAY=40
    REQUIRE_AUTH=false
    ```
+
+> Not: Klasörler, model modu (Hızlı/Düşünür) ve hafıza özeti için Supabase tarafında
+> `supabase/migrations/20251222_folders_memory_models.sql` dosyasını çalıştırın.
 
 ## 🏃 Lokal Geliştirme
 

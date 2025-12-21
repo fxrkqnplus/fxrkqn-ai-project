@@ -28,7 +28,10 @@
 		"vars": {
 		"ALLOWED_ORIGIN": "http://localhost:3000,http://127.0.0.1:3000",
 		"MAX_REQ_PER_DAY": "40",
-		"MODEL": "@cf/meta/llama-3.1-8b-instruct-fast",
+		"MODEL": "@cf/ibm-granite/granite-4.0-h-micro",
+		"MODEL_FAST": "@cf/ibm-granite/granite-4.0-h-micro",
+		"MODEL_THINK": "@cf/meta/llama-3.1-8b-instruct-fast",
+		"MODEL_MEMORY": "@cf/ibm-granite/granite-4.0-h-micro",
 		"SUPABASE_URL": "https://hfzqvrhgqtevpoklewfs.supabase.co",
 		"SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmenF2cmhncXRldnBva2xld2ZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEyNDM5MDMsImV4cCI6MjA2NjgxOTkwM30.u0XNaBPYW1HdgPal31vLWnn2biXum8YGERjTD-05zYk"
 		}

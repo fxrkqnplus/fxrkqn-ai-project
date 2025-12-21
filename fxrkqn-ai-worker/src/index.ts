@@ -12,10 +12,25 @@ export interface Env {
 
   ALLOWED_ORIGIN: string; // örn: http://localhost:3000 veya "http://localhost:3000,https://domain.com"
   MAX_REQ_PER_DAY: string; // örn: "40"
+  /**
+   * Varsayılan model (geriye dönük uyumlu).
+   * Eğer MODEL_FAST / MODEL_THINK tanımlı değilse fallback olarak kullanılır.
+   */
   MODEL: string; // örn: "@cf/meta/llama-3.1-8b-instruct-fast"
+
+  /** Hızlı mod modeli (daha düşük gecikme / daha düşük maliyet hedefi). */
+  MODEL_FAST?: string; // örn: "@cf/ibm-granite/granite-4.0-h-micro"
+
+  /** Düşünür mod modeli (daha yüksek kalite / hafıza destekli). */
+  MODEL_THINK?: string; // örn: "@cf/meta/llama-3.1-8b-instruct-fast"
+
+  /** Hafıza güncelleme modeli (mümkün olduğunca ucuz tut). */
+  MODEL_MEMORY?: string; // örn: "@cf/ibm-granite/granite-4.0-h-micro"
 }
 
 type IncomingMessage = { role: "user" | "model" | "assistant" | "system"; content: string };
+
+type ChatMode = "fast" | "think";
 
 function corsHeaders(corsOrigin: string) {
   return {
@@ -99,6 +114,15 @@ function enforce1to5Words(title: string) {
   return words.slice(0, 5).join(" ");
 }
 
+function draftTitleFromPrompt(text: string) {
+  const cleaned = (text || "")
+    .replace(/[\r\n]+/g, " ")
+    .replace(/[“”"']/g, "")
+    .trim();
+  const title = cleaned.split(/\s+/).slice(0, 5).join(" ").trim();
+  return title || "Yeni Sohbet";
+}
+
 function pickTextFromResult(result: any) {
   return (
     (typeof result?.response === "string" && result.response) ||
@@ -108,17 +132,118 @@ function pickTextFromResult(result: any) {
   );
 }
 
+function parseMode(value: unknown): ChatMode {
+  return value === "think" ? "think" : "fast";
+}
+
+function pickMaxTokensForMode(mode: ChatMode) {
+  // 
+  // ⚠️ Not: Bazı modeller (özellikle daha küçük/ucuz olanlar) yüksek max_tokens
+  // değerlerinde hata döndürebiliyor. Hızlı modda default'u düşük tutarak
+  // hem maliyeti düşürüyor hem de uyumluluğu artırıyoruz.
+  //
+  return mode === "think" ? 1024 : 256;
+}
+
+function pickModelForMode(env: Env, mode: ChatMode): ModelName {
+  const fallback = (env.MODEL || "@cf/ibm-granite/granite-4.0-h-micro") as ModelName;
+
+  if (mode === "think") {
+    return ((env.MODEL_THINK || env.MODEL) as ModelName) || fallback;
+  }
+
+  return ((env.MODEL_FAST || env.MODEL) as ModelName) || fallback;
+}
+
+function pickMemoryModel(env: Env): ModelName {
+  return ((env.MODEL_MEMORY || env.MODEL_FAST || env.MODEL) as ModelName) || ("@cf/ibm-granite/granite-4.0-h-micro" as ModelName);
+}
+
+function buildBaseSystem(mode: ChatMode, memorySummary: string | null) {
+  const base = [
+    "Sen Türkçe konuşan yardımcı bir sohbet asistanısın.",
+    "Kısa, net ve doğru cevap ver.",
+    "Gereksiz uzatma ve tahmin yürütme; emin değilsen bunu açıkça söyle.",
+  ];
+
+  if (mode === "think") {
+    base.push(
+      "Zor sorularda daha dikkatli düşün, gerekirse çözümü adım adım planla.",
+      "İç düşünceni uzatmadan, kullanıcıya sadece gerekli kısmı aktar."
+    );
+  } else {
+    base.push("Hızlı moddasın: mümkün olduğunca kısa ve pratik yanıt ver.");
+  }
+
+  if (mode === "think" && memorySummary && memorySummary.trim()) {
+    base.push(
+      "",
+      "KALICI HAFIZA (özet):",
+      memorySummary.trim(),
+      "",
+      "Bu hafızayı kullanarak daha tutarlı yanıt ver. Hafızadaki kesin olmayan bilgileri gerçek gibi sunma.",
+    );
+  }
+
+  return base.join("\n");
+}
+
+function cleanMemory(text: string) {
+  return text.replace(/\s+$/g, "").trim().slice(0, 2000);
+}
+
+async function updateMemorySummary(
+  ai: WorkersAI,
+  model: ModelName,
+  prevMemory: string | null,
+  userText: string,
+  assistantText: string
+) {
+  const sys = [
+    "Sen bir 'hafıza güncelleme' aracısın.",
+    "Amaç: Kullanıcıyla yapılan konuşmadan uzun vadede işe yarayan bilgileri kısa bir özet hafızaya yazmak.",
+    "Sadece KALICI ve işe yarar bilgileri ekle: kullanıcının hedefleri, tercihleri, projeler, kararlar, isimler, yapılacaklar.",
+    "Kesin olmayan varsayımları ekleme.",
+    "Çıktı Türkçe olmalı.",
+    "Format: 6-12 kısa madde (• ile).",
+    "Aynı bilgiyi tekrar etme. Gereksiz sohbeti yazma.",
+    "Sadece hafızayı yaz; başka açıklama yazma.",
+  ].join("\n");
+
+  const user = [
+    "Önceki hafıza:",
+    prevMemory?.trim() ? prevMemory.trim() : "(yok)",
+    "",
+    "Yeni konuşma parçası:",
+    `Kullanıcı: ${userText}`,
+    `Asistan: ${assistantText}`,
+    "",
+    "Yeni hafızayı üret.",
+  ].join("\n");
+
+  const r: any = await ai.run(model, {
+    messages: [
+      { role: "system", content: sys },
+      { role: "user", content: user },
+    ],
+    max_tokens: 256,
+  });
+
+  const raw = pickTextFromResult(r);
+  return cleanMemory(raw);
+}
+
 async function generateTitle(ai: WorkersAI, model: ModelName, userPrompt: string) {
   const titleSystem = [
     "Sen bir başlık üretim aracısın.",
-    "Kullanıcının metnini analiz et ve 1-5 kelimelik başlık üret.",
+    "Görev: Kullanıcının mesajını 1-5 kelimelik bir sohbet başlığına dönüştür.",
     "",
-    "KURAL:",
-    "Sadece başlığı yaz. Başka hiçbir şey yazma.",
-    "Emoji kullanma. Tırnak kullanma.",
-    "",
-    "Şu soruyu cevaplıyormuş gibi düşün:",
-    '"Sadece cevapları vermeni istiyorum. (kullanıcının promptu buraya gelecek) yazısına, bu yazıyı ifade eden özet geçen ama başlık tarzında olan, birkaç kelimelik (minimum 1 maksimum 5 kelime) özet bir başlık ayarlamak isteseydin bu ne olurdu?"',
+    "KURALLAR:",
+    "- Türkçe yaz.",
+    "- Sadece başlığı yaz; başka hiçbir şey yazma.",
+    "- 1 ile 5 kelime arasında olmalı.",
+    "- Emoji, tırnak ve noktalama işaretlerini mümkün olduğunca kullanma.",
+    "- Genel/geçersiz başlıklar üretme (ör. 'Yeni Sohbet').",
   ].join("\n");
 
   const r: any = await ai.run(model, {
@@ -128,10 +253,17 @@ async function generateTitle(ai: WorkersAI, model: ModelName, userPrompt: string
     ],
     // başlık için küçük tut
     max_tokens: 32,
+    // daha deterministik olsun
+    temperature: 0.2,
   });
 
   const raw = pickTextFromResult(r);
-  return enforce1to5Words(raw);
+  const candidate = enforce1to5Words(raw);
+  // Model bazen boş/uygunsuz bir şey döndürürse prompttan türet.
+  if (!candidate || candidate.trim().toLowerCase() === "yeni sohbet") {
+    return draftTitleFromPrompt(userPrompt);
+  }
+  return candidate;
 }
 
 export default {
@@ -203,25 +335,111 @@ export default {
       return new Response("Bad Request (messages required)", { status: 400, headers: corsHeaders(corsOrigin) });
     }
 
-    const model = (env.MODEL || "@cf/meta/llama-3.1-8b-instruct-fast") as ModelName;
     const ai = env.AI;
+
+    const mode = parseMode(body?.mode);
+    const memorySummary = typeof body?.memory === "string" ? body.memory : null;
+    const generateTitleFlag = body?.generateTitle === true;
+    const updateMemoryFlag = body?.updateMemory === true;
+
+    const model = pickModelForMode(env, mode);
+    const memoryModel = pickMemoryModel(env);
+
     const normalized = normalizeMessages(messages);
     const userPrompt = lastUserText(normalized);
 
-    // İstersen client'tan kontrol edebilirsin: body.generateTitle === true
-    // Şimdilik her response ile title döndürüyoruz.
-    const baseSystem = "Sen Türkçe konuşan yardımcı bir sohbet asistanısın.";
+    const baseSystem = buildBaseSystem(mode, memorySummary);
+
+    // Basit fallback zinciri: seçili model hata verirse başka bir modele düş.
+    // Hedef: "fast" modda asla tamamen boşa düşmemek.
+    const fallbackCandidates: ModelName[] = [];
+    const addCandidate = (m?: string) => {
+      const mm = (m || "").trim();
+      if (mm) fallbackCandidates.push(mm as ModelName);
+    };
+    // 1) env.MODEL (genel fallback)
+    addCandidate(env.MODEL);
+    // 2) env.MODEL_THINK (genelde daha stabil ama daha pahalı olabilir)
+    addCandidate(env.MODEL_THINK);
+    // 3) her ihtimale karşı küçük/ucuz bir model
+    addCandidate("@cf/meta/llama-3.2-1b-instruct");
+
+    async function runWithModel(chosen: ModelName) {
+      const answerResult: any = await ai.run(chosen, {
+        messages: [{ role: "system", content: baseSystem }, ...normalized],
+        max_tokens: pickMaxTokensForMode(mode),
+      });
+      const answerText = pickTextFromResult(answerResult);
+      return { answerText, answerResult };
+    }
 
     try {
       // 1) CEVAP
-      const answerResult: any = await ai.run(model, {
-        messages: [{ role: "system", content: baseSystem }, ...normalized],
-        max_tokens: 1024,
-      });
-      const answerText = pickTextFromResult(answerResult);
+      let usedModel: ModelName = model;
+      let answerText = "";
+      let answerResult: any = null;
 
-      // 2) BAŞLIK (sadece son user prompt ile)
-      const title = userPrompt.length > 0 ? await generateTitle(ai, model, userPrompt) : "Yeni Sohbet";
+      try {
+        const r = await runWithModel(model);
+        answerText = r.answerText;
+        answerResult = r.answerResult;
+      } catch (err) {
+        if (mode !== "fast") throw err;
+
+        // fast modda: fallback adaylarını sırayla dene (seçili model hariç)
+        let lastErr: unknown = err;
+        for (const cand of fallbackCandidates) {
+          if (!cand || cand === model) continue;
+          try {
+            usedModel = cand;
+            const r2 = await runWithModel(cand);
+            answerText = r2.answerText;
+            answerResult = r2.answerResult;
+            lastErr = null;
+            break;
+          } catch (e) {
+            lastErr = e;
+          }
+        }
+
+        if (lastErr) throw lastErr;
+      }
+
+      if (mode === "fast" && (!answerText || !answerText.trim())) {
+        // Nadiren boş cevap dönebiliyor; fast modda fallback adaylarını bir daha dene.
+        for (const cand of fallbackCandidates) {
+          if (!cand || cand === usedModel) continue;
+          try {
+            usedModel = cand;
+            const r3 = await runWithModel(cand);
+            answerText = r3.answerText;
+            answerResult = r3.answerResult;
+            if (answerText && answerText.trim()) break;
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      // 2) BAŞLIK (sadece istenirse) -> Cevabı üreten modelle üret (daha tutarlı olur)
+      let title: string | null = null;
+      if (generateTitleFlag && userPrompt.length > 0) {
+        try {
+          title = await generateTitle(ai, usedModel, userPrompt);
+        } catch {
+          title = null;
+        }
+      }
+
+      // 3) HAFIZA (sadece "think" modunda ve istenirse) -> hata olursa cevabı bozma
+      let nextMemory: string | null = null;
+      if (mode === "think" && updateMemoryFlag && userPrompt) {
+        try {
+          nextMemory = await updateMemorySummary(ai, memoryModel, memorySummary, userPrompt, answerText);
+        } catch {
+          nextMemory = null;
+        }
+      }
 
       // ✅ Backward compatible alanlar:
       // - response: eski frontend’in data.response beklediği yer
@@ -231,6 +449,9 @@ export default {
           response: answerText,
           answer: answerText,
           title,
+          mode,
+          modelUsed: usedModel,
+          memory: nextMemory,
           remainingToday: limit.remaining,
           maxPerDay: limit.max,
         }),
@@ -239,9 +460,10 @@ export default {
           headers: { ...corsHeaders(corsOrigin), "Content-Type": "application/json; charset=utf-8" },
         }
       );
-    } catch {
+    } catch (err: any) {
+      const details = typeof err?.message === "string" ? err.message : String(err ?? "");
       return new Response(
-        JSON.stringify({ error: "AI_ERROR", message: "Model çağrısı başarısız." }),
+        JSON.stringify({ error: "AI_ERROR", message: "Model çağrısı başarısız.", details }),
         {
           status: 500,
           headers: { ...corsHeaders(corsOrigin), "Content-Type": "application/json; charset=utf-8" },

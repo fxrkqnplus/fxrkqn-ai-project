@@ -11,12 +11,36 @@ interface Message {
   content: string;
 }
 
+type ChatMode = "fast" | "think";
+
+interface Folder {
+  id: string;
+  created_at: string;
+  name: string;
+}
+
 interface Conversation {
   id: string;
   created_at: string;
   title: string | null;
   pinned: boolean;
   pinned_at: string | null;
+
+  // New features
+  folder_id: string | null;
+  model_mode: ChatMode | null;
+  memory_summary: string | null;
+  memory_updated_at: string | null;
+}
+
+function draftTitleFromUserInput(text: string) {
+  const cleaned = (text || "")
+    .replace(/[\r\n]+/g, " ")
+    .replace(/[“”"']/g, "")
+    .trim();
+
+  const title = cleaned.split(/\s+/).slice(0, 5).join(" ").trim();
+  return title || "Yeni Sohbet";
 }
 
 const SidebarToggleIcon = ({ isOpen }: { isOpen: boolean }) => (
@@ -48,6 +72,36 @@ const PinIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
       d="M14 3l7 7-3 1-3 8-2-2-8 3 3-8-2-2 8-3 1-4Z"
       stroke="currentColor"
       strokeWidth="2"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const FolderIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path
+      d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v9A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5v-11Z"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const PencilIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path
+      d="M12 20h9"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
       strokeLinejoin="round"
     />
   </svg>
@@ -99,6 +153,8 @@ export default function ChatPage() {
 
   // Auth + data
   const [user, setUser] = useState<User | null>(null);
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
 
@@ -108,8 +164,33 @@ export default function ChatPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Model selection
+  const [modelMode, setModelMode] = useState<ChatMode>("fast");
+
   // 3-dot menu & modals
   const [openMenuForId, setOpenMenuForId] = useState<string | null>(null);
+
+  // Folder UI
+  const [openFolderMenuForId, setOpenFolderMenuForId] = useState<string | null>(null);
+
+  const [createFolderOpen, setCreateFolderOpen] = useState(false);
+  const [createFolderName, setCreateFolderName] = useState("");
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+
+  const [renameFolderOpen, setRenameFolderOpen] = useState(false);
+  const [renameFolderId, setRenameFolderId] = useState<string | null>(null);
+  const [renameFolderValue, setRenameFolderValue] = useState("");
+  const [isRenamingFolder, setIsRenamingFolder] = useState(false);
+
+  const [deleteFolderConfirmOpen, setDeleteFolderConfirmOpen] = useState(false);
+  const [deleteFolderTarget, setDeleteFolderTarget] = useState<Folder | null>(null);
+  const [isDeletingFolder, setIsDeletingFolder] = useState(false);
+
+  // Move conversation -> folder
+  const [moveConvOpen, setMoveConvOpen] = useState(false);
+  const [moveTarget, setMoveTarget] = useState<Conversation | null>(null);
+  const [moveFolderId, setMoveFolderId] = useState<string | null>(null);
+  const [isMoving, setIsMoving] = useState(false);
 
   const [renameModalOpen, setRenameModalOpen] = useState(false);
   const [renameId, setRenameId] = useState<string | null>(null);
@@ -147,12 +228,29 @@ export default function ChatPage() {
   const displayEmail = useMemo(() => user?.email ?? "", [user]);
   const avatarLetter = useMemo(() => (user?.email?.charAt(0) ?? "U").toUpperCase(), [user]);
 
+  const fetchFolders = useCallback(async (u: User | null) => {
+    if (!u) return;
+
+    const { data, error } = await supabase
+      .from("conversation_folders")
+      .select("id, created_at, name")
+      .eq("user_id", u.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Klasörler çekilemedi:", error);
+      return;
+    }
+
+    setFolders((data ?? []) as Folder[]);
+  }, []);
+
   const fetchConversations = useCallback(async (u: User | null) => {
     if (!u) return;
 
     const { data, error } = await supabase
       .from("conversations")
-      .select("id, created_at, title, pinned, pinned_at")
+      .select("id, created_at, title, pinned, pinned_at, folder_id, model_mode, memory_summary, memory_updated_at")
       .eq("user_id", u.id)
       .order("created_at", { ascending: false }); // DB'den temel sırayı alıyoruz, UI'da pinned'e göre tekrar sıralayacağız
 
@@ -177,6 +275,10 @@ export default function ChatPage() {
         setOpenMenuForId(null);
       }
 
+      if (openFolderMenuForId && menuContainerRef.current && target && !menuContainerRef.current.contains(target)) {
+        setOpenFolderMenuForId(null);
+      }
+
       if (profileOpen && profileContainerRef.current && target && !profileContainerRef.current.contains(target)) {
         setProfileOpen(false);
       }
@@ -184,7 +286,7 @@ export default function ChatPage() {
 
     window.addEventListener("pointerdown", onPointerDown, { capture: true });
     return () => window.removeEventListener("pointerdown", onPointerDown, { capture: true });
-  }, [openMenuForId, profileOpen]);
+  }, [openMenuForId, openFolderMenuForId, profileOpen]);
 
   // Auth bootstrap
   useEffect(() => {
@@ -194,6 +296,7 @@ export default function ChatPage() {
         return;
       }
       setUser(session.user);
+      fetchFolders(session.user);
       fetchConversations(session.user);
     });
 
@@ -208,13 +311,14 @@ export default function ChatPage() {
       }
 
       setUser(session.user);
+      fetchFolders(session.user);
       fetchConversations(session.user);
     })();
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [router, fetchConversations]);
+  }, [router, fetchConversations, fetchFolders]);
 
   const closeSidebarOnMobile = useCallback(() => {
     if (typeof window !== "undefined" && window.innerWidth < 1024) {
@@ -237,6 +341,8 @@ export default function ChatPage() {
 
   const handleConversationSelect = useCallback(
     async (convId: string) => {
+      const conv = conversations.find((c) => c.id === convId);
+      setModelMode((conv?.model_mode as ChatMode) || "fast");
       setCurrentConversationId(convId);
       setMessages([]);
       closeSidebarOnMobile();
@@ -255,10 +361,40 @@ export default function ChatPage() {
       setMessages(((data ?? []) as Message[]) || []);
       setTimeout(() => textareaRef.current?.focus(), 0);
     },
-    [closeSidebarOnMobile]
+    [closeSidebarOnMobile, conversations]
   );
 
   const canSend = useMemo(() => !!user && !!input.trim() && !isGenerating, [user, input, isGenerating]);
+
+  const setModeAndPersist = useCallback(
+    async (nextMode: ChatMode) => {
+      setModelMode(nextMode);
+
+      if (!user || !currentConversationId) return;
+
+      const conv = conversations.find((c) => c.id === currentConversationId);
+      const prevMode = (conv?.model_mode as ChatMode) || "fast";
+
+      // optimistic
+      setConversations((prev) => prev.map((c) => (c.id === currentConversationId ? { ...c, model_mode: nextMode } : c)));
+
+      try {
+        const { error } = await supabase
+          .from("conversations")
+          .update({ model_mode: nextMode })
+          .eq("id", currentConversationId)
+          .eq("user_id", user.id);
+
+        if (error) throw error;
+      } catch (e) {
+        console.error("Model mode update failed:", e);
+        // rollback
+        setConversations((prev) => prev.map((c) => (c.id === currentConversationId ? { ...c, model_mode: prevMode } : c)));
+        setModelMode(prevMode);
+      }
+    },
+    [user, currentConversationId, conversations]
+  );
 
   const openRename = useCallback((conv: Conversation) => {
     setOpenMenuForId(null);
@@ -297,6 +433,158 @@ export default function ChatPage() {
       setIsRenaming(false);
     }
   }, [user, renameId, renameValue, closeRename]);
+
+  // --------------------
+  // Folder CRUD
+  // --------------------
+  const openCreateFolder = useCallback(() => {
+    setOpenFolderMenuForId(null);
+    setCreateFolderName("");
+    setCreateFolderOpen(true);
+  }, []);
+
+  const closeCreateFolder = useCallback(() => {
+    setCreateFolderOpen(false);
+  }, []);
+
+  const submitCreateFolder = useCallback(async () => {
+    if (!user) return;
+    const name = createFolderName.trim();
+    if (!name) return;
+
+    setIsCreatingFolder(true);
+    try {
+      const { data, error } = await supabase
+        .from("conversation_folders")
+        .insert({ user_id: user.id, name })
+        .select("id, created_at, name")
+        .single();
+
+      if (error) throw error;
+      setFolders((prev) => [data as Folder, ...prev]);
+      setCreateFolderOpen(false);
+    } catch (e) {
+      console.error("Folder create failed:", e);
+    } finally {
+      setIsCreatingFolder(false);
+    }
+  }, [user, createFolderName]);
+
+  const openFolderRename = useCallback((f: Folder) => {
+    setOpenFolderMenuForId(null);
+    setRenameFolderId(f.id);
+    setRenameFolderValue(f.name);
+    setRenameFolderOpen(true);
+  }, []);
+
+  const closeFolderRename = useCallback(() => {
+    setRenameFolderOpen(false);
+    setRenameFolderId(null);
+  }, []);
+
+  const submitFolderRename = useCallback(async () => {
+    if (!user || !renameFolderId) return;
+    const nextName = renameFolderValue.trim();
+    if (!nextName) return;
+
+    setIsRenamingFolder(true);
+    try {
+      const { error } = await supabase
+        .from("conversation_folders")
+        .update({ name: nextName })
+        .eq("id", renameFolderId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      setFolders((prev) => prev.map((f) => (f.id === renameFolderId ? { ...f, name: nextName } : f)));
+      closeFolderRename();
+    } catch (e) {
+      console.error("Folder rename failed:", e);
+    } finally {
+      setIsRenamingFolder(false);
+    }
+  }, [user, renameFolderId, renameFolderValue, closeFolderRename]);
+
+  const openFolderDeleteConfirm = useCallback((f: Folder) => {
+    setOpenFolderMenuForId(null);
+    setDeleteFolderTarget(f);
+    setDeleteFolderConfirmOpen(true);
+  }, []);
+
+  const closeFolderDeleteConfirm = useCallback(() => {
+    setDeleteFolderConfirmOpen(false);
+    setDeleteFolderTarget(null);
+  }, []);
+
+  const confirmFolderDelete = useCallback(async () => {
+    if (!user || !deleteFolderTarget) return;
+
+    setIsDeletingFolder(true);
+    try {
+      // Önce o klasördeki sohbetleri boşalt
+      const { error: clearErr } = await supabase
+        .from("conversations")
+        .update({ folder_id: null })
+        .eq("folder_id", deleteFolderTarget.id)
+        .eq("user_id", user.id);
+
+      if (clearErr) throw clearErr;
+
+      const { error } = await supabase
+        .from("conversation_folders")
+        .delete()
+        .eq("id", deleteFolderTarget.id)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      setFolders((prev) => prev.filter((f) => f.id !== deleteFolderTarget.id));
+      setConversations((prev) => prev.map((c) => (c.folder_id === deleteFolderTarget.id ? { ...c, folder_id: null } : c)));
+      if (selectedFolderId === deleteFolderTarget.id) setSelectedFolderId(null);
+      closeFolderDeleteConfirm();
+    } catch (e) {
+      console.error("Folder delete failed:", e);
+    } finally {
+      setIsDeletingFolder(false);
+    }
+  }, [user, deleteFolderTarget, selectedFolderId]);
+
+  // --------------------
+  // Move conversation -> folder
+  // --------------------
+  const openMoveConversation = useCallback((conv: Conversation) => {
+    setOpenMenuForId(null);
+    setMoveTarget(conv);
+    setMoveFolderId(conv.folder_id ?? null);
+    setMoveConvOpen(true);
+  }, []);
+
+  const closeMoveConversation = useCallback(() => {
+    setMoveConvOpen(false);
+    setMoveTarget(null);
+  }, []);
+
+  const submitMoveConversation = useCallback(async () => {
+    if (!user || !moveTarget) return;
+    setIsMoving(true);
+    try {
+      const { error } = await supabase
+        .from("conversations")
+        .update({ folder_id: moveFolderId })
+        .eq("id", moveTarget.id)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      setConversations((prev) => prev.map((c) => (c.id === moveTarget.id ? { ...c, folder_id: moveFolderId } : c)));
+      setMoveConvOpen(false);
+      setMoveTarget(null);
+    } catch (e) {
+      console.error("Move conversation failed:", e);
+    } finally {
+      setIsMoving(false);
+    }
+  }, [user, moveTarget, moveFolderId]);
 
   // ✅ Pin toggle -> DB
   const togglePin = useCallback(
@@ -495,13 +783,21 @@ export default function ChatPage() {
 
       let convId = currentConversationId;
       const isNewChat = !convId;
+      const provisionalTitle = isNewChat ? draftTitleFromUserInput(userInput) : null;
 
       try {
         if (isNewChat) {
           const { data, error } = await supabase
             .from("conversations")
-            .insert({ user_id: currentUser.id })
-            .select("id, title, created_at, pinned, pinned_at")
+            // UI'da "Yeni Sohbet" placeholder'ına düşmemek için ilk mesajdan provisional başlık atıyoruz.
+            // (AI başarısız olursa bile sohbet listesi anlamlı görünür.)
+            .insert({
+              user_id: currentUser.id,
+              folder_id: selectedFolderId,
+              model_mode: modelMode,
+              title: provisionalTitle,
+            })
+            .select("id, title, created_at, pinned, pinned_at, folder_id, model_mode, memory_summary, memory_updated_at")
             .single();
 
           if (error) throw new Error(`Konuşma oluşturulamadı: ${error.message}`);
@@ -528,7 +824,10 @@ export default function ChatPage() {
         const workerUrl = process.env.NEXT_PUBLIC_AI_WORKER_URL;
         if (!workerUrl) throw new Error("NEXT_PUBLIC_AI_WORKER_URL tanımlı değil.");
 
-        const cfMessages = currentMessages.map((m) => ({
+        const activeConv = isNewChat ? null : conversations.find((c) => c.id === convId);
+        const memorySummary = (activeConv?.memory_summary ?? null) as string | null;
+
+        const contextMessages = (modelMode === "think" ? currentMessages.slice(-20) : currentMessages.slice(-12)).map((m) => ({
           role: m.role === "model" ? "assistant" : "user",
           content: m.content,
         }));
@@ -539,7 +838,13 @@ export default function ChatPage() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({ messages: cfMessages }),
+          body: JSON.stringify({
+            messages: contextMessages,
+            mode: modelMode,
+            memory: modelMode === "think" ? memorySummary : null,
+            generateTitle: isNewChat,
+            updateMemory: modelMode === "think",
+          }),
         });
 
         if (!response.ok) {
@@ -555,7 +860,8 @@ export default function ChatPage() {
           typeof data.response === "string" ? data.response :
           "";
 
-  const titleFromWorker = typeof data.title === "string" ? data.title : null;
+        const titleFromWorker = typeof data.title === "string" ? data.title : null;
+        const memoryFromWorker = typeof data.memory === "string" ? data.memory : null;
 
         setMessages((prev) => [...prev, { role: "model", content: fullResponse }]);
 
@@ -566,22 +872,36 @@ export default function ChatPage() {
           content: fullResponse,
         });
 
+        // Hafıza: sadece think modunda güncelle
+        if (modelMode === "think" && memoryFromWorker && memoryFromWorker.trim()) {
+          const updatedAt = new Date().toISOString();
+          setConversations((prev) =>
+            prev.map((c) => (c.id === convId ? { ...c, memory_summary: memoryFromWorker.trim(), memory_updated_at: updatedAt } : c))
+          );
+          await supabase
+            .from("conversations")
+            .update({ memory_summary: memoryFromWorker.trim(), memory_updated_at: updatedAt })
+            .eq("id", convId)
+            .eq("user_id", currentUser.id);
+        }
+
         // Title: DB'de sadece ilk mesajda ayarla
         if (isNewChat) {
-          const fallbackTitle =
-            userInput
-              .replace(/[\r\n]+/g, " ")
-              .replace(/[“”"']/g, "")
-              .trim()
-              .split(/\s+/)
-              .slice(0, 5)
-              .join(" ")
-              .trim() || "Yeni Sohbet";
-
-          const finalTitle = (titleFromWorker && titleFromWorker.trim()) || fallbackTitle;
+          // AI başlığı geldiyse provisional'ı overwrite ediyoruz.
+          // Ancak model bazen "Yeni Sohbet" gibi genel bir şey döndürebiliyor.
+          // Bu durumda provisional başlığı koruyoruz.
+          const workerTitle = titleFromWorker?.trim() ?? "";
+          const workerTitleOk = !!workerTitle && workerTitle.toLowerCase() !== "yeni sohbet";
+          const finalTitle = (workerTitleOk ? workerTitle : "") || provisionalTitle || "Yeni Sohbet";
 
           setConversations((prev) => prev.map((c) => (c.id === convId ? { ...c, title: finalTitle } : c)));
-          await supabase.from("conversations").update({ title: finalTitle }).eq("id", convId).eq("user_id", currentUser.id);
+          const { error: titleErr } = await supabase
+            .from("conversations")
+            .update({ title: finalTitle })
+            .eq("id", convId)
+            .eq("user_id", currentUser.id);
+
+          if (titleErr) console.error("Title update failed:", titleErr);
         }
 
         setTimeout(() => textareaRef.current?.focus(), 0);
@@ -593,7 +913,7 @@ export default function ChatPage() {
         setIsGenerating(false);
       }
     },
-    [user, input, isGenerating, messages, currentConversationId, autoResizeTextarea]
+    [user, input, isGenerating, messages, currentConversationId, conversations, selectedFolderId, modelMode, autoResizeTextarea]
   );
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -603,9 +923,14 @@ export default function ChatPage() {
     }
   }, []);
 
+  const filteredConversations = useMemo(() => {
+    if (!selectedFolderId) return conversations;
+    return conversations.filter((c) => c.folder_id === selectedFolderId);
+  }, [conversations, selectedFolderId]);
+
   // Sort: pinned first, then pinned_at desc, then created_at desc
   const sortedConversations = useMemo(() => {
-    const copy = [...conversations];
+    const copy = [...filteredConversations];
     copy.sort((a, b) => {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
 
@@ -618,7 +943,7 @@ export default function ChatPage() {
       return bt - at;
     });
     return copy;
-  }, [conversations]);
+  }, [filteredConversations]);
 
   if (!user) {
     return <div className="flex h-screen w-full items-center justify-center bg-background" />;
@@ -627,7 +952,7 @@ export default function ChatPage() {
   const mobileToggleTransform = isSidebarOpen ? "translateX(calc(18rem + 0.75rem))" : "translateX(0px)";
 
   return (
-    <div className="relative min-h-screen bg-background text-foreground font-[family-name:var(--font-geist-sans)]">
+    <div className="relative h-[100dvh] overflow-hidden bg-background text-foreground font-[family-name:var(--font-geist-sans)]">
       <div
         className={`fixed inset-0 z-30 bg-black/50 backdrop-blur-sm transition-opacity lg:hidden ${
           isSidebarOpen ? "opacity-100" : "pointer-events-none opacity-0"
@@ -664,8 +989,102 @@ export default function ChatPage() {
           </div>
 
           <div className="flex-1 overflow-y-auto p-2 custom-scrollbar" ref={menuContainerRef}>
+            {/* Folders */}
+            <div className="mb-3 rounded-xl border border-zinc-800/70 bg-zinc-950/40 p-2">
+              <div className="flex items-center justify-between px-1">
+                <div className="text-xs font-semibold text-zinc-300">Klasörler</div>
+                <button
+                  type="button"
+                  onClick={openCreateFolder}
+                  className="rounded-lg px-2 py-1 text-xs text-zinc-200 hover:bg-zinc-900/70"
+                >
+                  +
+                </button>
+              </div>
+
+              <div className="mt-2 space-y-1">
+                <button
+                  type="button"
+                  onClick={() => setSelectedFolderId(null)}
+                  className={[
+                    "w-full flex items-center rounded-lg px-2 py-1.5 text-left text-sm transition-colors",
+                    !selectedFolderId ? "bg-zinc-800/70 text-white" : "text-zinc-200 hover:bg-zinc-900/60",
+                  ].join(" ")}
+                >
+                  <span className="truncate">Tüm Sohbetler</span>
+                </button>
+
+                {folders.map((f) => {
+                  const activeFolder = selectedFolderId === f.id;
+
+                  return (
+                    <div key={f.id} className="relative flex items-stretch gap-1 rounded-lg">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedFolderId(f.id)}
+                        className={[
+                          "flex-1 min-w-0 flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors",
+                          activeFolder ? "bg-zinc-800/70 text-white" : "text-zinc-200 hover:bg-zinc-900/60",
+                        ].join(" ")}
+                        title={f.name}
+                      >
+                        <span className="shrink-0 text-zinc-300">
+                          <FolderIcon className="h-4 w-4" />
+                        </span>
+                        <span className="truncate">{f.name}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setOpenFolderMenuForId((prev) => (prev === f.id ? null : f.id));
+                        }}
+                        className="shrink-0 rounded-lg px-2 text-zinc-300 hover:text-white hover:bg-zinc-900/60 transition-colors"
+                        aria-label="Klasör seçenekleri"
+                        title="Seçenekler"
+                      >
+                        <DotsIcon />
+                      </button>
+
+                      {openFolderMenuForId === f.id && (
+                        <div
+                          className="absolute right-2 top-10 z-50 w-44 rounded-xl border border-zinc-800/70 bg-zinc-950/95 backdrop-blur shadow-2xl overflow-hidden"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => openFolderRename(f)}
+                            className="w-full px-3 py-2 text-left text-sm text-zinc-200 hover:bg-zinc-900/70"
+                          >
+                            İsmini değiştir
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openFolderDeleteConfirm(f)}
+                            className="w-full px-3 py-2 text-left text-sm text-red-300 hover:bg-red-500/10"
+                          >
+                            Sil
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {folders.length === 0 && (
+                  <div className="px-2 py-1 text-xs text-zinc-500">Henüz klasör yok.</div>
+                )}
+              </div>
+            </div>
+
+            {/* Conversations */}
             {sortedConversations.length === 0 ? (
-              <div className="px-2 py-3 text-sm text-zinc-400">Henüz sohbet yok. “+ Yeni” ile başlayabilirsin.</div>
+              <div className="px-2 py-3 text-sm text-zinc-400">
+                {selectedFolderId ? "Bu klasörde sohbet yok." : "Henüz sohbet yok. “+ Yeni” ile başlayabilirsin."}
+              </div>
             ) : (
               <div className="space-y-1">
                 {sortedConversations.map((conv) => {
@@ -738,9 +1157,19 @@ export default function ChatPage() {
                           <button
                             type="button"
                             onClick={() => openRename(conv)}
-                            className="w-full px-3 py-2 text-left text-sm text-zinc-200 hover:bg-zinc-900/70"
+                            className="w-full px-3 py-2 text-left text-sm text-zinc-200 hover:bg-zinc-900/70 flex items-center gap-2"
                           >
+                            <PencilIcon className="h-4 w-4" />
                             İsmini değiştir
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => openMoveConversation(conv)}
+                            className="w-full px-3 py-2 text-left text-sm text-zinc-200 hover:bg-zinc-900/70 flex items-center gap-2"
+                          >
+                            <FolderIcon className="h-4 w-4" />
+                            Klasöre taşı...
                           </button>
 
                           <button
@@ -837,10 +1266,10 @@ export default function ChatPage() {
         <SidebarToggleIcon isOpen={isSidebarOpen} />
       </button>
 
-      <div className={`relative ${sidebarPaddingLeftDesktop}`}>
-        <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-3 pt-16 sm:px-6 lg:px-10">
-          <div className="flex-1">
-            <div className="h-[calc(100vh-10.5rem)] sm:h-[calc(100vh-10.75rem)] overflow-y-auto rounded-2xl border border-zinc-800/70 bg-background/70 backdrop-blur p-4 sm:p-6 shadow-lg custom-scrollbar">
+      <div className={`relative ${sidebarPaddingLeftDesktop} h-screen pb-3`}> 
+        <div className="mx-auto flex h-full max-w-5xl flex-col px-3 pt-4 sm:px-6 lg:px-10">
+          <div className="flex-1 min-h-0">
+            <div className="h-full overflow-y-auto rounded-2xl border border-zinc-800/70 bg-background/70 backdrop-blur p-4 sm:p-6 shadow-lg custom-scrollbar">
               {messages.length === 0 ? (
                 <div className="flex h-full items-center justify-center text-zinc-500">
                   Sohbeti başlatmak için bir mesaj gönderin.
@@ -874,7 +1303,42 @@ export default function ChatPage() {
             </div>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-zinc-800/70 bg-background/70 backdrop-blur p-3 sm:p-4 shadow-lg">
+          <div className="mt-3 rounded-2xl border border-zinc-800/70 bg-background/70 backdrop-blur p-3 sm:p-4 shadow-lg">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-zinc-400">Model</span>
+                <div className="inline-flex overflow-hidden rounded-xl border border-zinc-800/70 bg-zinc-950/40">
+                  <button
+                    type="button"
+                    onClick={() => void setModeAndPersist("fast")}
+                    className={[
+                      "px-3 py-1.5 text-xs font-medium transition-colors",
+                      modelMode === "fast" ? "bg-zinc-800/70 text-white" : "text-zinc-300 hover:bg-zinc-900/60",
+                    ].join(" ")}
+                  >
+                    Hızlı
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void setModeAndPersist("think")}
+                    className={[
+                      "px-3 py-1.5 text-xs font-medium transition-colors",
+                      modelMode === "think" ? "bg-zinc-800/70 text-white" : "text-zinc-300 hover:bg-zinc-900/60",
+                    ].join(" ")}
+                  >
+                    Düşünür
+                  </button>
+                </div>
+
+                {modelMode === "think" && <span className="text-xs text-zinc-500">Hafıza açık</span>}
+              </div>
+
+              {selectedFolderId && (
+                <div className="text-xs text-zinc-500 truncate">
+                  Klasör: {folders.find((f) => f.id === selectedFolderId)?.name ?? "..."}
+                </div>
+              )}
+            </div>
             <form onSubmit={handleSubmit} className="flex items-end gap-3">
               <textarea
                 ref={textareaRef}
@@ -939,7 +1403,7 @@ export default function ChatPage() {
             </form>
           </div>
 
-          <div className="h-6" />
+          {/* bottom spacer removed to keep input fully visible without page scroll */}
         </div>
       </div>
 
@@ -1054,6 +1518,180 @@ export default function ChatPage() {
                 className="rounded-xl bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:bg-zinc-700 disabled:text-zinc-300"
               >
                 {isRenaming ? "Kaydediliyor..." : "Kaydet"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Folder create */}
+      {createFolderOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-sm rounded-2xl border border-zinc-800/70 bg-zinc-950/90 backdrop-blur p-4 shadow-2xl">
+            <div className="text-sm font-semibold text-white">Yeni klasör</div>
+
+            <input
+              value={createFolderName}
+              onChange={(e) => setCreateFolderName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (!isCreatingFolder && createFolderName.trim()) void submitCreateFolder();
+                }
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  if (!isCreatingFolder) closeCreateFolder();
+                }
+              }}
+              className="mt-3 w-full rounded-xl bg-zinc-900/70 border border-zinc-800/70 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+              placeholder="Klasör adı"
+              autoFocus
+            />
+
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeCreateFolder}
+                className="rounded-xl px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-900/60"
+                disabled={isCreatingFolder}
+              >
+                İptal
+              </button>
+              <button
+                type="button"
+                onClick={submitCreateFolder}
+                disabled={isCreatingFolder || !createFolderName.trim()}
+                className="rounded-xl bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:bg-zinc-700 disabled:text-zinc-300"
+              >
+                {isCreatingFolder ? "Oluşturuluyor..." : "Oluştur"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Folder rename */}
+      {renameFolderOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-sm rounded-2xl border border-zinc-800/70 bg-zinc-950/90 backdrop-blur p-4 shadow-2xl">
+            <div className="text-sm font-semibold text-white">Klasör adını değiştir</div>
+
+            <input
+              value={renameFolderValue}
+              onChange={(e) => setRenameFolderValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (!isRenamingFolder && renameFolderValue.trim()) void submitFolderRename();
+                }
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  if (!isRenamingFolder) closeFolderRename();
+                }
+              }}
+              className="mt-3 w-full rounded-xl bg-zinc-900/70 border border-zinc-800/70 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+              placeholder="Yeni klasör adı"
+              autoFocus
+            />
+
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeFolderRename}
+                className="rounded-xl px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-900/60"
+                disabled={isRenamingFolder}
+              >
+                İptal
+              </button>
+              <button
+                type="button"
+                onClick={submitFolderRename}
+                disabled={isRenamingFolder || !renameFolderValue.trim()}
+                className="rounded-xl bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:bg-zinc-700 disabled:text-zinc-300"
+              >
+                {isRenamingFolder ? "Kaydediliyor..." : "Kaydet"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Folder delete */}
+      {deleteFolderConfirmOpen && deleteFolderTarget && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-sm rounded-2xl border border-zinc-800/70 bg-zinc-950/90 backdrop-blur p-4 shadow-2xl">
+            <div className="text-sm font-semibold text-white">Klasörü sil?</div>
+            <div className="mt-2 text-sm text-zinc-400">
+              <span className="text-zinc-200 font-medium">“{deleteFolderTarget.name}”</span> silinecek.
+              <br />
+              Bu klasördeki sohbetler klasörsüz kalır.
+            </div>
+
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeFolderDeleteConfirm}
+                className="rounded-xl px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-900/60"
+                disabled={isDeletingFolder}
+              >
+                İptal
+              </button>
+
+              <button
+                type="button"
+                onClick={confirmFolderDelete}
+                className="rounded-xl bg-red-600 px-3 py-2 text-sm text-white hover:bg-red-700 disabled:bg-zinc-700 disabled:text-zinc-300"
+                disabled={isDeletingFolder}
+              >
+                {isDeletingFolder ? "Siliniyor..." : "Sil"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Move conversation */}
+      {moveConvOpen && moveTarget && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-sm rounded-2xl border border-zinc-800/70 bg-zinc-950/90 backdrop-blur p-4 shadow-2xl">
+            <div className="text-sm font-semibold text-white">Klasöre taşı</div>
+            <div className="mt-2 text-sm text-zinc-400 truncate">
+              <span className="text-zinc-200 font-medium">“{moveTarget.title ?? "Başlıksız Sohbet"}”</span>
+            </div>
+
+            <div className="mt-3">
+              <label className="block text-xs text-zinc-400 mb-1">Klasör</label>
+              <select
+                value={moveFolderId ?? ""}
+                onChange={(e) => setMoveFolderId(e.target.value || null)}
+                className="w-full rounded-xl bg-zinc-900/70 border border-zinc-800/70 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+                disabled={isMoving}
+              >
+                <option value="">Klasörsüz</option>
+                {folders.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeMoveConversation}
+                className="rounded-xl px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-900/60"
+                disabled={isMoving}
+              >
+                İptal
+              </button>
+              <button
+                type="button"
+                onClick={submitMoveConversation}
+                disabled={isMoving}
+                className="rounded-xl bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:bg-zinc-700 disabled:text-zinc-300"
+              >
+                {isMoving ? "Taşınıyor..." : "Kaydet"}
               </button>
             </div>
           </div>
