@@ -47,3 +47,7 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
+
+# cloudflare wrangler
+.wrangler/
+fxrkqn-ai-worker/.wrangler/

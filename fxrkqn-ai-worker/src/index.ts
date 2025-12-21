@@ -1,9 +1,10 @@
-import { Ai } from "@cloudflare/ai";
+type WorkersAI = {
+  run: (model: string, input: unknown) => Promise<unknown>;
+};
 
-type ModelName = Parameters<Ai["run"]>[0];
-
+type ModelName = Parameters<WorkersAI["run"]>[0];
 export interface Env {
-  AI: any; // Workers AI binding
+  AI: WorkersAI; // Workers AI binding
   RL: KVNamespace;
 
   SUPABASE_URL: string;
@@ -107,7 +108,7 @@ function pickTextFromResult(result: any) {
   );
 }
 
-async function generateTitle(ai: Ai, model: ModelName, userPrompt: string) {
+async function generateTitle(ai: WorkersAI, model: ModelName, userPrompt: string) {
   const titleSystem = [
     "Sen bir başlık üretim aracısın.",
     "Kullanıcının metnini analiz et ve 1-5 kelimelik başlık üret.",
@@ -203,8 +204,7 @@ export default {
     }
 
     const model = (env.MODEL || "@cf/meta/llama-3.1-8b-instruct-fast") as ModelName;
-    const ai = new Ai(env.AI);
-
+    const ai = env.AI;
     const normalized = normalizeMessages(messages);
     const userPrompt = lastUserText(normalized);
 
